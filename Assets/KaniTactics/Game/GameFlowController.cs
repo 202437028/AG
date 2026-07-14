@@ -42,12 +42,21 @@ namespace KaniTactics.Game
         // CPS計測(M5のρ確定用データ)
         private readonly List<float> _cpsLog = new List<float>();
 
+        // CPU AI(M3): 均衡ブレイン・プレイヤーCPS推定・疲労カウント
+        private CpuBrain _brain;
+        private CpsTracker _cpsTracker;
+        private int _mashCount;
+        private float _cpuCpsThisMash;
+
         private void Start() => StartMatch();
 
         private void StartMatch()
         {
             _config = configAsset.ToConfig();
             _state = new MatchState(_config);
+            _brain = new CpuBrain(_config, cpuDifficulty, new System.Random());
+            _cpsTracker = new CpsTracker(_config.PlayerCpsPrior);
+            _mashCount = 0;
             _cpsLog.Clear();
             EnterSelect();
         }
@@ -115,18 +124,13 @@ namespace KaniTactics.Game
         private void ConfirmSelection()
         {
             _tileA = _handSorted[_cursor];
-            _tileB = CpuPickRandom();
+            // CPUはプレイヤーの選択を知らずに残り手札だけを見て決める(同時出しの再現)
+            _tileB = _brain.SelectTile(_state, _mashCount, _cpsTracker.Estimate);
             _state.ConsumeTiles(_tileA, _tileB);
             _matchup = MatchupJudge.Judge(_tileA, _tileB, _config);
 
             _phase = Phase.Reveal;
             _phaseTimer = 2f; // 公開を2秒見せて自動遷移
-        }
-
-        private int CpuPickRandom()
-        {
-            var hand = _state.HandB.ToList();
-            return hand[Random.Range(0, hand.Count)];
         }
 
         // ---- Reveal ----
@@ -145,6 +149,7 @@ namespace KaniTactics.Game
             {
                 _playerTaps.Reset();
                 _cpuTapsF = 0f;
+                _cpuCpsThisMash = _brain.EffectiveCps(_mashCount); // 疲労込みの実効CPS
                 _phaseTimer = _config.MashSeconds;
                 _phase = Phase.Mash;
             }
@@ -158,20 +163,23 @@ namespace KaniTactics.Game
             if (kb.aKey.wasPressedThisFrame) _playerTaps.RegisterTap(0);
             if (kb.dKey.wasPressedThisFrame) _playerTaps.RegisterTap(1);
 
-            _cpuTapsF += _config.CpuCps[cpuDifficulty] * Time.deltaTime;
+            _cpuTapsF += _cpuCpsThisMash * Time.deltaTime;
             _phaseTimer -= Time.deltaTime;
             if (_phaseTimer > 0f) return;
 
             float cps = _playerTaps.Count / _config.MashSeconds;
             _cpsLog.Add(cps);
-            Debug.Log($"[CPS計測] Round {_displayRound}: {_playerTaps.Count}打 = {cps:F2}cps");
+            _cpsTracker.Record(cps);   // AIのプレイヤーCPS推定を更新
+            _mashCount++;              // CPU疲労が1段進む
+            Debug.Log($"[CPS計測] Round {_displayRound}: あなた {_playerTaps.Count}打 = {cps:F2}cps ／ CPU実効 {_cpuCpsThisMash:F2}cps");
 
             var winner = MashResolver.Resolve(_playerTaps.Count, Mathf.FloorToInt(_cpuTapsF), _matchup);
             if (winner == null)
             {
-                // 完全同点 → 再連打
+                // 完全同点 → 再連打(疲労は1段進んだ状態で)
                 _playerTaps.Reset();
                 _cpuTapsF = 0f;
+                _cpuCpsThisMash = _brain.EffectiveCps(_mashCount);
                 _phaseTimer = _config.MashSeconds;
                 return;
             }

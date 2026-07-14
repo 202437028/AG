@@ -34,6 +34,18 @@ namespace KaniTactics.Game
         [Header("CPU難易度(連打/秒) — イージー/ノーマル/ハード/名人")]
         [SerializeField] private float[] cpuCps = { 5f, 7f, 9f, 16f };
 
+        [Header("CPU AI")]
+        [Tooltip("連打フェーズ1回ごとのCPU側CPS減衰率(疲労モデル)")]
+        [SerializeField, Range(0f, 0.3f)] private float cpuFatigueRatePerMash = 0.05f;
+        [Tooltip("難易度ごとの均衡手の採用率(残りは完全ランダム)")]
+        [SerializeField] private float[] cpuEquilibriumRate = { 0f, 0.5f, 0.85f, 1f };
+        [Tooltip("プレイヤーCPSの事前推定値(計測前にAIが使う)")]
+        [SerializeField] private float playerCpsPrior = 8f;
+        [Tooltip("AIが想定するプレイヤー連打の変動係数(実測 約15%)")]
+        [SerializeField] private float aiPlayerCpsCv = 0.15f;
+        [Tooltip("均衡ソルバー(虚構遊び)の反復回数")]
+        [SerializeField] private int fictitiousPlayIterations = 600;
+
         [Header("下剋上マッチ定義")]
         [SerializeField] private GekokujoEntry[] gekokujo =
         {
@@ -60,6 +72,11 @@ namespace KaniTactics.Game
                 WinsToClinch = winsToClinch,
                 SelectTimeLimitSeconds = selectTimeLimitSeconds,
                 CpuCps = cpuCps,
+                CpuFatigueRatePerMash = cpuFatigueRatePerMash,
+                CpuEquilibriumRate = cpuEquilibriumRate,
+                PlayerCpsPrior = playerCpsPrior,
+                AiPlayerCpsCv = aiPlayerCpsCv,
+                FictitiousPlayIterations = fictitiousPlayIterations,
                 Gekokujo = rules,
             };
         }
