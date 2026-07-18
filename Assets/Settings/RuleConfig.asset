@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a67e691edf1c4f78bf16840fd9e7f57, type: 3}
   m_Name: RuleConfig
   m_EditorClassIdentifier: KaniTactics.Game::KaniTactics.Game.RuleConfigAsset
-  advantageStepRate: 0.08
+  advantageStepRate: 0.12
   mashSeconds: 10
   mashTriggerMaxDiff: 2
   totalRounds: 9
@@ -23,6 +23,15 @@ MonoBehaviour:
   - 7
   - 9
   - 16
+  cpuFatigueRatePerMash: 0.05
+  cpuEquilibriumRate:
+  - 0
+  - 0.5
+  - 0.85
+  - 1
+  playerCpsPrior: 8
+  aiPlayerCpsCv: 0.15
+  fictitiousPlayIterations: 600
   gekokujo:
   - low: 1
     high: 9
