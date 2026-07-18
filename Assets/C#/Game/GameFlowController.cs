@@ -25,6 +25,12 @@ namespace KaniTactics.Game
         [SerializeField] private GameMode mode = GameMode.SoloCpu;
         [Tooltip("SoloCpu時のみ使用。0=イージー(5cps) 1=ノーマル(7) 2=ハード(9) 3=名人(16)")]
         [SerializeField, Range(0, 3)] private int cpuDifficulty = 1;
+        [Tooltip("ポーズメニューのルートオブジェクト(BAMBOO OF CHICKEN移植分)。選択フェーズ中のみ開ける")]
+        [SerializeField] private GameObject pausePanel;
+        [Tooltip("ポーズ画面の戦績表示(任意)")]
+        [SerializeField] private PauseStatusView pauseStatus;
+
+        private bool _paused;
 
         private RuleConfig _config;
         private MatchState _state;
@@ -140,6 +146,14 @@ namespace KaniTactics.Game
 
         private void UpdateSelect()
         {
+            // ポーズの開閉(選択フェーズ中のみ。連打中は「連打逃げ」防止のためPauseマップ自体が無効)
+            if (_controls.Pause.Pause.WasPressedThisFrame())
+            {
+                SetPaused(!_paused);
+                return;
+            }
+            if (_paused) return; // ポーズ中はタイマーも入力も止まる
+
             var sel = _controls.Select;
             _phaseTimer -= Time.deltaTime;
 
@@ -162,8 +176,32 @@ namespace KaniTactics.Game
             // Enter確定、または時間切れ=選択中の牌で確定
             if (sel.Confirm.WasPressedThisFrame() || _phaseTimer <= 0f)
                 ConfirmSelection();
+        }
 
-            // TODO(M4後半): _controls.Pause.Pause でBAMBOO OF CHICKEN移植のポーズを開く
+        /// <summary>ポーズ状態の切替。UIボタン(再開)からはResumeFromPauseを呼ぶ。</summary>
+        private void SetPaused(bool paused)
+        {
+            _paused = paused;
+            if (pausePanel != null) pausePanel.SetActive(paused);
+            if (paused && pauseStatus != null)
+            {
+                pauseStatus.Render(
+                    $"{NameOf(Player.A)} {_state.WinsA} - {_state.WinsB} {NameOf(Player.B)}",
+                    _state.HandA, _state.HandB);
+            }
+            // ポーズ中は牌選択の入力を殺し、Pauseマップ(Esc)だけ生かす
+            if (paused) _controls.Select.Disable();
+            else _controls.Select.Enable();
+        }
+
+        /// <summary>ポーズメニューの「再開」ボタン用。</summary>
+        public void ResumeFromPause() => SetPaused(false);
+
+        /// <summary>ポーズメニューの「最初から」ボタン用。試合を仕切り直す。</summary>
+        public void RestartMatch()
+        {
+            SetPaused(false);
+            StartMatch();
         }
 
         private void ConfirmSelection()
@@ -378,6 +416,12 @@ namespace KaniTactics.Game
             }
 
             hud.Render(header, hands, main, sub);
+
+            // 牌の画像表示(TileRowView割り当て時のみ有効)。選択中はカーソル位置を強調
+            int? cursorTile = null;
+            if (_phase == Phase.Select && !_paused && _handSorted != null && _handSorted.Count > 0)
+                cursorTile = _handSorted[_cursor];
+            hud.RenderTileRows(_state.HandA, _state.HandB, cursorTile, _selecting);
         }
 
         private static string TileList(IReadOnlyCollection<int> hand)
