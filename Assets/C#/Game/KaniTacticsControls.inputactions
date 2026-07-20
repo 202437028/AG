@@ -3,12 +3,12 @@
     "maps": [
         {
             "name": "Select",
-            "id": "94aaa3e1-18c5-4c81-a862-e63b47497c9d",
+            "id": "908afdc5-6140-439d-ba41-51413e478784",
             "actions": [
                 {
                     "name": "MoveLeft",
                     "type": "Button",
-                    "id": "417cc8cd-87b4-4267-823f-f3bfaff6d114",
+                    "id": "39a8aa61-0d48-4bf6-b574-870e23afad53",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -17,7 +17,7 @@
                 {
                     "name": "MoveRight",
                     "type": "Button",
-                    "id": "4a84e0d0-affb-4125-805a-9083146296aa",
+                    "id": "e7850a52-f499-4f9c-a15c-a95cc49c8da2",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -26,7 +26,7 @@
                 {
                     "name": "Confirm",
                     "type": "Button",
-                    "id": "5de40dc9-c01c-41ab-9ec1-6b1334ec9979",
+                    "id": "51536ee7-a032-4abe-bf37-d8a6cd9e0799",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -35,7 +35,7 @@
                 {
                     "name": "Digit1",
                     "type": "Button",
-                    "id": "68167085-edf2-4462-92a7-17295576687d",
+                    "id": "0081e574-ffc9-458f-8f71-328b986ae9cf",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -44,7 +44,7 @@
                 {
                     "name": "Digit2",
                     "type": "Button",
-                    "id": "668e6c77-5ded-4815-89fc-c1c77875e52b",
+                    "id": "1c066497-e890-458e-b49d-c6d6342a5118",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -53,7 +53,7 @@
                 {
                     "name": "Digit3",
                     "type": "Button",
-                    "id": "2bccdd0e-a949-4a9d-a144-4760765e0119",
+                    "id": "841975dc-8443-4dd8-90a2-d326b6fa9ef7",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -62,7 +62,7 @@
                 {
                     "name": "Digit4",
                     "type": "Button",
-                    "id": "57564c19-554e-412f-bfa0-60048ab5a834",
+                    "id": "332f7e0b-6d7f-4b37-8927-4d48ac501de7",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -71,7 +71,7 @@
                 {
                     "name": "Digit5",
                     "type": "Button",
-                    "id": "247246e2-b584-42be-b67c-9b6cea635372",
+                    "id": "b1e69e6e-0432-4b88-ad92-f60c21e3a0cc",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -80,7 +80,7 @@
                 {
                     "name": "Digit6",
                     "type": "Button",
-                    "id": "56ca97cf-ac78-4c6f-a1d7-87b661c565d6",
+                    "id": "da2b4ac5-2cd3-46a1-8250-47e13b2c1253",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -89,7 +89,7 @@
                 {
                     "name": "Digit7",
                     "type": "Button",
-                    "id": "b14f9775-60d9-4185-87d4-753bad6a323b",
+                    "id": "a6f25887-63d0-45f2-a9b2-ee854fcfcc08",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -98,7 +98,7 @@
                 {
                     "name": "Digit8",
                     "type": "Button",
-                    "id": "0d5bbc9c-69a9-4cd7-96ca-20d669a52e7e",
+                    "id": "5042b927-826d-476d-bdb6-2147f9ca2009",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -107,7 +107,7 @@
                 {
                     "name": "Digit9",
                     "type": "Button",
-                    "id": "143cb2ab-34ef-4f38-be10-5f8be9280dc6",
+                    "id": "a4809e9b-aadd-4f3e-ad48-843b02d8a8d9",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -117,7 +117,7 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "cdd7cc0e-28ab-44c7-bbb7-c9546c4d2a85",
+                    "id": "25b1aa6c-3cb9-4856-a083-b8190c090ffd",
                     "path": "<Keyboard>/leftArrow",
                     "interactions": "",
                     "processors": "",
@@ -128,7 +128,7 @@
                 },
                 {
                     "name": "",
-                    "id": "f5c4d9b4-d125-4c75-85c4-4ecf307698a8",
+                    "id": "28eae813-72f2-4be0-9ea5-aa933fc99fab",
                     "path": "<Keyboard>/rightArrow",
                     "interactions": "",
                     "processors": "",
@@ -139,7 +139,7 @@
                 },
                 {
                     "name": "",
-                    "id": "cd5c5781-217a-49fa-8fe9-0b1d29e420ee",
+                    "id": "dcf2b3f2-464b-4c80-bf35-c67f3b1f9262",
                     "path": "<Keyboard>/enter",
                     "interactions": "",
                     "processors": "",
@@ -150,7 +150,7 @@
                 },
                 {
                     "name": "",
-                    "id": "2c05a8fd-e63a-459d-9721-725991bd5c5c",
+                    "id": "24c9b881-459b-497b-b79a-544df4210f7c",
                     "path": "<Keyboard>/numpadEnter",
                     "interactions": "",
                     "processors": "",
@@ -161,7 +161,7 @@
                 },
                 {
                     "name": "",
-                    "id": "c73b9c67-e05d-49f2-988c-d2f53e9b3d9d",
+                    "id": "231f0eea-5682-4b43-bb8c-2bf0791bb0ac",
                     "path": "<Keyboard>/1",
                     "interactions": "",
                     "processors": "",
@@ -172,7 +172,7 @@
                 },
                 {
                     "name": "",
-                    "id": "491ebf0e-7998-4e2c-8128-b35c674fc055",
+                    "id": "69a0fec3-166d-4c25-b422-829917eca22b",
                     "path": "<Keyboard>/2",
                     "interactions": "",
                     "processors": "",
@@ -183,7 +183,7 @@
                 },
                 {
                     "name": "",
-                    "id": "5bb992a5-1b0d-45ab-914f-9e3fdbb83b2c",
+                    "id": "d4918aff-c941-4810-a2e7-06d87093f556",
                     "path": "<Keyboard>/3",
                     "interactions": "",
                     "processors": "",
@@ -194,7 +194,7 @@
                 },
                 {
                     "name": "",
-                    "id": "f1985191-988d-41ca-b931-b7b782730f4c",
+                    "id": "817818af-d58a-4dd0-b00e-8055726b47d0",
                     "path": "<Keyboard>/4",
                     "interactions": "",
                     "processors": "",
@@ -205,7 +205,7 @@
                 },
                 {
                     "name": "",
-                    "id": "c9eb0a7d-9564-46aa-b618-037c386fe284",
+                    "id": "7d13dd4f-3fa6-4f97-aa3b-28b93cd7a687",
                     "path": "<Keyboard>/5",
                     "interactions": "",
                     "processors": "",
@@ -216,7 +216,7 @@
                 },
                 {
                     "name": "",
-                    "id": "9285a306-6c88-4ae2-ac17-b6aa6e35645f",
+                    "id": "cfcfe5ea-5b9c-46ad-b7b9-c3269d23a34b",
                     "path": "<Keyboard>/6",
                     "interactions": "",
                     "processors": "",
@@ -227,7 +227,7 @@
                 },
                 {
                     "name": "",
-                    "id": "e2cd39ed-0f4a-45a9-a411-c19fabde4ee7",
+                    "id": "07ca5a21-55ed-466c-9aac-e377c4bf6b68",
                     "path": "<Keyboard>/7",
                     "interactions": "",
                     "processors": "",
@@ -238,7 +238,7 @@
                 },
                 {
                     "name": "",
-                    "id": "44c19491-a068-48c2-859c-c2bb5276b601",
+                    "id": "0be8e881-6ae0-4ed0-a819-41ee56d7f4c3",
                     "path": "<Keyboard>/8",
                     "interactions": "",
                     "processors": "",
@@ -249,7 +249,7 @@
                 },
                 {
                     "name": "",
-                    "id": "3e67d707-edc7-4d0d-bddb-c35f4c1b50b2",
+                    "id": "1918af1c-197e-4187-9a94-a375d5e0b6c8",
                     "path": "<Keyboard>/9",
                     "interactions": "",
                     "processors": "",
@@ -262,12 +262,12 @@
         },
         {
             "name": "MashP1",
-            "id": "a2e3cdfd-546e-4998-82b3-fb229a22ac4b",
+            "id": "90365d94-9d3a-4680-bbc7-6ebb7fad6ef6",
             "actions": [
                 {
                     "name": "TapLeft",
                     "type": "Button",
-                    "id": "42e459be-d07a-4a82-8751-13ab9ee80d7a",
+                    "id": "285ebf31-c182-4e36-a078-bc009973aac5",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -276,7 +276,7 @@
                 {
                     "name": "TapRight",
                     "type": "Button",
-                    "id": "a30305ea-2c97-46c5-9571-49a140007130",
+                    "id": "ea1e721c-31cc-4056-8209-37d7302cf40c",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -286,7 +286,7 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "2adff3d0-fcad-4fee-9789-b6d13cee9cdd",
+                    "id": "f3990a8d-d2ca-4abe-b2bc-6ce82662663b",
                     "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
@@ -297,7 +297,7 @@
                 },
                 {
                     "name": "",
-                    "id": "70ad497b-e3a3-4136-af53-9ff5bb594297",
+                    "id": "ff908ba6-f3ab-49e2-804e-b55314d58a50",
                     "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
@@ -310,12 +310,12 @@
         },
         {
             "name": "MashP2",
-            "id": "eb3d3415-09a6-40dd-90cc-94ab46f1d6df",
+            "id": "03878b7c-ca9d-4b0c-aa42-eeec80547713",
             "actions": [
                 {
                     "name": "TapLeft",
                     "type": "Button",
-                    "id": "d3ba16c3-6f73-485a-a82c-994201402ac0",
+                    "id": "56eece76-17e8-470c-b31a-db8947c23c75",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -324,7 +324,7 @@
                 {
                     "name": "TapRight",
                     "type": "Button",
-                    "id": "ada679c1-1cd4-4893-85a6-3fc612fe588d",
+                    "id": "17d87ce7-2ff2-4e79-8e7c-e44ff9539dda",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -334,7 +334,7 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "6ed6e12c-abf2-4573-b3ea-35897218d3c8",
+                    "id": "b1c95af7-9798-46d0-9c92-3eb87df9ddf2",
                     "path": "<Keyboard>/leftArrow",
                     "interactions": "",
                     "processors": "",
@@ -345,7 +345,7 @@
                 },
                 {
                     "name": "",
-                    "id": "7dc9e8be-853a-4c4e-ac70-6fafee401d55",
+                    "id": "d87dcb53-ad16-4b98-a6b2-c2ad70d85a64",
                     "path": "<Keyboard>/rightArrow",
                     "interactions": "",
                     "processors": "",
@@ -358,12 +358,12 @@
         },
         {
             "name": "Pause",
-            "id": "68f956e4-ed12-4fbc-88f8-255851373b0f",
+            "id": "de4ecee1-6639-46e5-9543-032e333eaba1",
             "actions": [
                 {
                     "name": "Pause",
                     "type": "Button",
-                    "id": "e772a102-2d20-48de-9153-23b030fd5ffa",
+                    "id": "db16a943-e558-4fdb-a2b2-6a24e2c40db3",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -373,7 +373,7 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "64f5110a-7aed-40d5-8b44-0e46d11d65b3",
+                    "id": "e6fa1b71-f006-4473-b37a-1b46255c44e1",
                     "path": "<Keyboard>/escape",
                     "interactions": "",
                     "processors": "",
@@ -386,12 +386,21 @@
         },
         {
             "name": "System",
-            "id": "f1d3d205-36fb-49ba-880c-8e08eb67dfa6",
+            "id": "e377c023-65cc-4b6a-9814-5fc6de90f84d",
             "actions": [
                 {
                     "name": "Restart",
                     "type": "Button",
-                    "id": "0c03332d-4936-48a4-8d56-38826cf2ff57",
+                    "id": "471d1f35-8092-486f-ac73-a353700dcc21",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "ToTitle",
+                    "type": "Button",
+                    "id": "dbfde75e-16c9-4724-88a1-752ed17c23b5",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -401,12 +410,23 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "3c469be9-6830-4296-ba52-00f038f4802a",
+                    "id": "e53859db-1f56-448d-afdd-b117ecd8e111",
                     "path": "<Keyboard>/r",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Restart",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4beb399e-bce5-4fca-a38e-a5316b61b20f",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ToTitle",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

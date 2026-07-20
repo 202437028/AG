@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using KaniTactics.Core;
 
 namespace KaniTactics.Game
@@ -29,6 +30,18 @@ namespace KaniTactics.Game
         [SerializeField] private GameObject pausePanel;
         [Tooltip("ポーズ画面の戦績表示(任意)")]
         [SerializeField] private PauseStatusView pauseStatus;
+        [Tooltip("試合終了画面からEscで戻るタイトルシーン名")]
+        [SerializeField] private string titleSceneName = "Title";
+
+        [Header("サウンド(未割り当ての音は鳴らないだけ)")]
+        [SerializeField] private AudioClip bgmBattle;
+        [SerializeField] private AudioClip seConfirm;   // 牌決定
+        [SerializeField] private AudioClip seReveal;    // 公開
+        [SerializeField] private AudioClip seMashLoop;  // 連打中ループ
+        [SerializeField] private AudioClip seRoundWin;  // ラウンド勝利(P1視点)
+        [SerializeField] private AudioClip seRoundLose; // ラウンド敗北(P1視点)
+        [SerializeField] private AudioClip seMatchWin;  // 試合勝利(P1視点)
+        [SerializeField] private AudioClip seMatchLose; // 試合敗北(P1視点)
 
         private bool _paused;
 
@@ -81,10 +94,22 @@ namespace KaniTactics.Game
 
         private void OnDestroy() => _controls?.Dispose();
 
-        private void Start() => StartMatch();
+        private void Start()
+        {
+            // タイトル画面経由なら選択されたモード・難易度で上書き
+            // (エディタでGameシーンを直接再生した場合はインスペクタ値のまま)
+            if (MatchSettings.Configured)
+            {
+                mode = MatchSettings.Mode;
+                cpuDifficulty = MatchSettings.CpuDifficulty;
+            }
+            StartMatch();
+        }
 
         private void StartMatch()
         {
+            SetPaused(false); // ポーズパネルがアクティブ保存されていた場合の保険
+            SoundManager.Instance.PlayBgm(bgmBattle);
             _config = configAsset.ToConfig();
             _state = new MatchState(_config);
             if (!IsVersus)
@@ -206,6 +231,7 @@ namespace KaniTactics.Game
 
         private void ConfirmSelection()
         {
+            SoundManager.Instance.PlaySe(seConfirm);
             int picked = _handSorted[_cursor];
 
             if (IsVersus)
@@ -228,6 +254,8 @@ namespace KaniTactics.Game
             _state.ConsumeTiles(_tileA, _tileB);
             _matchup = MatchupJudge.Judge(_tileA, _tileB, _config);
 
+            SoundManager.Instance.PlaySe(seReveal);
+            SoundManager.Instance.DuckForSeconds(0.5f, 2f); // Revealフェーズ(2秒)の間だけ薄くする
             _phase = Phase.Reveal;
             _phaseTimer = 2f; // 公開を2秒見せて自動遷移
             SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
@@ -254,6 +282,7 @@ namespace KaniTactics.Game
                     _cpuCpsThisMash = _brain.EffectiveCps(_mashCount); // 疲労込みの実効CPS
                 _phaseTimer = _config.MashSeconds;
                 _phase = Phase.Mash;
+                SoundManager.Instance.PlayLoopSe(seMashLoop);
                 if (mashGauge != null) mashGauge.Show();
                 if (crabStage != null) crabStage.BeginClash();
                 SwitchMaps(select: false, mashP1: true, mashP2: IsVersus, system: false);
@@ -321,6 +350,9 @@ namespace KaniTactics.Game
             _state.AwardWin(_roundWinner.Value);
             _phase = Phase.Result;
             _phaseTimer = 2f;
+            SoundManager.Instance.StopLoopSe();
+            SoundManager.Instance.PlaySe(_roundWinner == Player.A ? seRoundWin : seRoundLose);
+            SoundManager.Instance.DuckForSeconds(0.35f, 2f); // Resultフェーズ(2秒)の間だけ絞る
             if (mashGauge != null) mashGauge.Hide();
             if (crabStage != null) crabStage.PlayResult(_roundWinner.Value);
             SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
@@ -351,6 +383,8 @@ namespace KaniTactics.Game
             {
                 if (_cpsLog.Count > 0)
                     Debug.Log($"[CPS計測] 平均 {_cpsLog.Average():F2} / 最小 {_cpsLog.Min():F2} / 最大 {_cpsLog.Max():F2} (連打{_cpsLog.Count}回)");
+                SoundManager.Instance.PlaySe(_state.MatchWinner == Player.A ? seMatchWin : seMatchLose);
+                SoundManager.Instance.DuckMute(); // 試合終了ジングルの間はBGMを完全ミュート(次の試合開始で自動復帰)
                 _phase = Phase.MatchEnd;
                 SwitchMaps(select: false, mashP1: false, mashP2: false, system: true);
             }
@@ -364,6 +398,10 @@ namespace KaniTactics.Game
         {
             if (_controls.System.Restart.WasPressedThisFrame())
                 StartMatch();
+
+            if (_controls.System.ToTitle.WasPressedThisFrame()
+                && Application.CanStreamedLevelBeLoaded(titleSceneName))
+                SceneManager.LoadScene(titleSceneName);
         }
 
         // ---- 表示用テキストの構築(Viewへ渡すだけ。描画はMatchHudViewの責務) ----
@@ -411,7 +449,10 @@ namespace KaniTactics.Game
                 default:
                     var w = _state.MatchWinner;
                     main = $"◆ 試合終了! 勝者: {(w.HasValue ? NameOf(w.Value) : "引き分け")}  ({_state.WinsA} - {_state.WinsB})";
-                    sub = "Rキーで再戦";
+                    // 隠しヒント: ソロのハード(難易度2)を勝利し、名人が未解放のときだけ
+                    if (!IsVersus && cpuDifficulty == 2 && w == Player.A && !TitleMenuController.IsMeijinUnlocked)
+                        main += "\n「……タイトルで、ハサミを九回打ち鳴らせ」";
+                    sub = "Rキーで再戦 / Escでタイトルへ";
                     break;
             }
 
