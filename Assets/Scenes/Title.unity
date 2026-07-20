@@ -4033,6 +4033,9 @@ MonoBehaviour:
   gameSceneName: AG
   meijinButton: {fileID: 1123136546}
   unlockEffect: {fileID: 0}
+  bgmTitle: {fileID: 8300000, guid: c0fe14097d4b6404eb71ef67dc8c14db, type: 3}
+  seClick: {fileID: 8300000, guid: 831e53613a4284e67b412652a1d700f3, type: 3}
+  seUnlock: {fileID: 8300000, guid: d8b7d50b63c53455f95c511765e4fb0a, type: 3}
 --- !u!4 &1864390541
 Transform:
   m_ObjectHideFlags: 0

@@ -54,6 +54,9 @@ namespace KaniTactics.Game
 
         private Vector3 _homeA, _homeB;
         private Quaternion _homeRotA, _homeRotB;
+        // 結果演出の基準(押し合い終了時の位置。定位置に戻さずその場で演出するため)
+        private Vector3 _resultBaseA, _resultBaseB;
+        private Quaternion _resultBaseRotA, _resultBaseRotB;
         private float _current = 0.5f;
         private float _target = 0.5f;
         private Mode _mode = Mode.Home;
@@ -79,6 +82,9 @@ namespace KaniTactics.Game
         {
             _resultWinner = winner;
             _resultTime = 0f;
+            // 押し合いが終わった「その場」を基準にする(定位置へ戻さない)
+            if (crabA != null) { _resultBaseA = crabA.localPosition; _resultBaseRotA = crabA.localRotation; }
+            if (crabB != null) { _resultBaseB = crabB.localPosition; _resultBaseRotB = crabB.localRotation; }
             _mode = Mode.Result;
             SetClashingAnim(false);
         }
@@ -143,10 +149,10 @@ namespace KaniTactics.Game
                     var losePosOffset = Vector3.down * (sinkDepth * roll);
                     var loseRot = Quaternion.Euler(0f, 0f, rollDegrees * roll * dir);
 
-                    desiredPosA = _homeA + (aWon ? winPosOffset : losePosOffset);
-                    desiredPosB = _homeB + (aWon ? losePosOffset : winPosOffset);
-                    desiredRotA = aWon ? _homeRotA : _homeRotA * loseRot;
-                    desiredRotB = aWon ? _homeRotB * Quaternion.Inverse(loseRot) : _homeRotB;
+                    desiredPosA = _resultBaseA + (aWon ? winPosOffset : losePosOffset);
+                    desiredPosB = _resultBaseB + (aWon ? losePosOffset : winPosOffset);
+                    desiredRotA = aWon ? _resultBaseRotA : _resultBaseRotA * loseRot;
+                    desiredRotB = aWon ? _resultBaseRotB * Quaternion.Inverse(loseRot) : _resultBaseRotB;
                     break;
                 }
 

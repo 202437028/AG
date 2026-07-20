@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace KaniTactics.Game
 {
@@ -22,6 +21,10 @@ namespace KaniTactics.Game
 
         private const string MeijinPrefKey = "MeijinUnlocked";
 
+        [Header("開発用")]
+        [Tooltip("エディタ再生のたびに名人モードをロックし直す(演出テスト用)。ビルド時は無視される")]
+        [SerializeField] private bool relockMeijinInEditor = true;
+
         [Header("サウンド(未割り当ての音は鳴らないだけ)")]
         [SerializeField] private AudioClip bgmTitle;
         [SerializeField] private AudioClip seClick;   // ボタン決定
@@ -32,6 +35,9 @@ namespace KaniTactics.Game
 
         private void Start()
         {
+            if (relockMeijinInEditor && Application.isEditor)
+                PlayerPrefs.DeleteKey(MeijinPrefKey); // 毎回ロック状態から始めて解放演出を確認できるようにする
+
             SoundManager.Instance.PlayBgm(bgmTitle);
             ShowMain();
             if (meijinButton != null) meijinButton.SetActive(IsMeijinUnlocked);
@@ -70,7 +76,7 @@ namespace KaniTactics.Game
             MatchSettings.Configured = true;
             MatchSettings.Mode = GameFlowController.GameMode.SoloCpu;
             MatchSettings.CpuDifficulty = Mathf.Clamp(difficulty, 0, 3);
-            SceneManager.LoadScene(gameSceneName);
+            SceneLoader.Instance.LoadScene(gameSceneName);
         }
 
         /// <summary>「ふたりでプレイ」ボタン → ローカル2Pで即開始。</summary>
@@ -79,7 +85,7 @@ namespace KaniTactics.Game
             SoundManager.Instance.PlaySe(seClick);
             MatchSettings.Configured = true;
             MatchSettings.Mode = GameFlowController.GameMode.LocalVersus;
-            SceneManager.LoadScene(gameSceneName);
+            SceneLoader.Instance.LoadScene(gameSceneName);
         }
 
         /// <summary>難易度パネルの「戻る」ボタン。</summary>

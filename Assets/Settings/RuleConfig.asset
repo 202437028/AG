@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a67e691edf1c4f78bf16840fd9e7f57, type: 3}
   m_Name: RuleConfig
   m_EditorClassIdentifier: KaniTactics.Game::KaniTactics.Game.RuleConfigAsset
-  advantageStepRate: 0.12
+  advantageStepRate: 0.15
   mashSeconds: 10
   mashTriggerMaxDiff: 2
   totalRounds: 9
   winsToClinch: 5
   selectTimeLimitSeconds: 30
   cpuCps:
-  - 5
-  - 7
-  - 9
+  - 4
+  - 8
+  - 12
   - 16
   cpuFatigueRatePerMash: 0.05
   cpuEquilibriumRate:

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace KaniTactics.Game
 {
@@ -21,18 +20,9 @@ namespace KaniTactics.Game
         public void OnCloseButton() => gameFlow.ResumeFromPause();
 
         /// <summary>「リスタート」ボタン用。試合を最初から仕切り直す。</summary>
-        public void OnRestartButton() => gameFlow.RestartMatch();
+        public void OnRestartButton() => SceneLoader.Instance.FadeAction(gameFlow.RestartMatch);
 
         /// <summary>「タイトルへ」ボタン用。</summary>
-        public void OnTitleButton()
-        {
-            if (!Application.CanStreamedLevelBeLoaded(titleSceneName))
-            {
-                Debug.LogWarning(
-                    $"タイトルシーン '{titleSceneName}' がBuild Settingsに未登録です(Day 2で作成予定)。");
-                return;
-            }
-            SceneManager.LoadScene(titleSceneName);
-        }
+        public void OnTitleButton() => SceneLoader.Instance.LoadScene(titleSceneName);
     }
 }

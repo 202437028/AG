@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using KaniTactics.Core;
 
 namespace KaniTactics.Game
@@ -17,12 +16,20 @@ namespace KaniTactics.Game
     {
         public enum GameMode { SoloCpu, LocalVersus }
 
-        private enum Phase { Select, Reveal, Mash, Result, MatchEnd }
+        private enum Phase { RoundIntro, Select, Reveal, Mash, Result, MatchEnd }
 
         [SerializeField] private RuleConfigAsset configAsset;
         [SerializeField] private MatchHudView hud;
         [SerializeField] private MashGaugeView mashGauge;
         [SerializeField] private CrabClashView crabStage;
+        [Tooltip("公開フェーズの演出(任意。未割り当てなら従来通り2秒の簡易表示)")]
+        [SerializeField] private RevealView revealView;
+        [Tooltip("ラウンド開始演出 ROUND○/FIGHT!!(任意)")]
+        [SerializeField] private RoundIntroView roundIntroView;
+        [Tooltip("カメラ演出(任意)。選択フェーズだけカメラが動く")]
+        [SerializeField] private CameraDirector cameraDirector;
+        [Tooltip("フェーズごとのHUD表示制御(任意)")]
+        [SerializeField] private HudVisibilityDirector hudVisibility;
         [SerializeField] private GameMode mode = GameMode.SoloCpu;
         [Tooltip("SoloCpu時のみ使用。0=イージー(5cps) 1=ノーマル(7) 2=ハード(9) 3=名人(16)")]
         [SerializeField, Range(0, 3)] private int cpuDifficulty = 1;
@@ -37,13 +44,14 @@ namespace KaniTactics.Game
         [SerializeField] private AudioClip bgmBattle;
         [SerializeField] private AudioClip seConfirm;   // 牌決定
         [SerializeField] private AudioClip seReveal;    // 公開
-        [SerializeField] private AudioClip seMashLoop;  // 連打中ループ
+        [SerializeField] private AudioClip seTap;       // 連打の打鍵1回ごと(A/D共通)
         [SerializeField] private AudioClip seRoundWin;  // ラウンド勝利(P1視点)
         [SerializeField] private AudioClip seRoundLose; // ラウンド敗北(P1視点)
         [SerializeField] private AudioClip seMatchWin;  // 試合勝利(P1視点)
         [SerializeField] private AudioClip seMatchLose; // 試合敗北(P1視点)
 
         private bool _paused;
+        private bool _transitioning; // ラウンド間のフェード中
 
         private RuleConfig _config;
         private MatchState _state;
@@ -92,7 +100,12 @@ namespace KaniTactics.Game
             };
         }
 
-        private void OnDestroy() => _controls?.Dispose();
+        private void OnDestroy()
+        {
+            if (_controls == null) return;
+            _controls.Disable(); // 有効なままのMapを残すとリーク警告が出る
+            _controls.Dispose();
+        }
 
         private void Start()
         {
@@ -119,7 +132,7 @@ namespace KaniTactics.Game
             }
             _mashCount = 0;
             _cpsLog.Clear();
-            EnterSelect();
+            EnterRoundIntro();
         }
 
         // ---- Action Mapの切替(フェーズ遷移の唯一の入力管理点) ----
@@ -134,11 +147,40 @@ namespace KaniTactics.Game
             if (system) _controls.System.Enable(); else _controls.System.Disable();
         }
 
-        private void EnterSelect()
+        /// <summary>ラウンド開始演出(ROUND○ / FIGHT!!)を挟んでから選択フェーズへ入る。</summary>
+        private void EnterRoundIntro()
         {
+            _transitioning = false;
             _displayRound = _state.RoundNumber;
             if (mashGauge != null) mashGauge.Hide();
             if (crabStage != null) crabStage.ReturnHome();
+            if (cameraDirector != null) cameraDirector.EnterSelectMode();
+            if (hudVisibility != null) hudVisibility.ShowAll(); // 演出で隠したUIをここで戻す
+            SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
+
+            if (roundIntroView != null)
+            {
+                roundIntroView.Play(_displayRound);
+                _phaseTimer = roundIntroView.TotalSeconds;
+                _phase = Phase.RoundIntro;
+            }
+            else
+            {
+                EnterSelect(); // 演出未割り当てならそのまま選択へ
+            }
+        }
+
+        private void UpdateRoundIntro()
+        {
+            _phaseTimer -= Time.deltaTime;
+            if (_phaseTimer > 0f) return;
+            if (roundIntroView != null) roundIntroView.Hide();
+            EnterSelect();
+        }
+
+        private void EnterSelect()
+        {
+            _displayRound = _state.RoundNumber;
             BeginSelection(Player.A);
         }
 
@@ -157,6 +199,7 @@ namespace KaniTactics.Game
         {
             switch (_phase)
             {
+                case Phase.RoundIntro: UpdateRoundIntro(); break;
                 case Phase.Select: UpdateSelect(); break;
                 case Phase.Reveal: UpdateReveal(); break;
                 case Phase.Mash: UpdateMash(); break;
@@ -211,7 +254,7 @@ namespace KaniTactics.Game
             if (paused && pauseStatus != null)
             {
                 pauseStatus.Render(
-                    $"{NameOf(Player.A)} {_state.WinsA} - {_state.WinsB} {NameOf(Player.B)}",
+                    $"{_state.WinsA} - {_state.WinsB}",
                     _state.HandA, _state.HandB);
             }
             // ポーズ中は牌選択の入力を殺し、Pauseマップ(Esc)だけ生かす
@@ -255,9 +298,35 @@ namespace KaniTactics.Game
             _matchup = MatchupJudge.Judge(_tileA, _tileB, _config);
 
             SoundManager.Instance.PlaySe(seReveal);
-            SoundManager.Instance.DuckForSeconds(0.5f, 2f); // Revealフェーズ(2秒)の間だけ薄くする
+            if (cameraDirector != null) cameraDirector.EnterBattleMode();
             _phase = Phase.Reveal;
-            _phaseTimer = 2f; // 公開を2秒見せて自動遷移
+
+            if (revealView != null)
+            {
+                if (_matchup.IsImmediate)
+                {
+                    // 大差決着: 勝者に1勝を先取りした状態のスコアを見せる
+                    int winsA = _state.WinsA + (_matchup.ImmediateWinner == Player.A ? 1 : 0);
+                    int winsB = _state.WinsB + (_matchup.ImmediateWinner == Player.B ? 1 : 0);
+                    revealView.PlayImmediate(_tileA, _tileB, $"{winsA} - {winsB}");
+                    _phaseTimer = revealView.ImmediateSeconds;
+                }
+                else
+                {
+                    string instruction = IsVersus
+                        ? "AとD ←と→を\n連打しろ!!"
+                        : "AとDを連打しろ!!";
+                    revealView.PlayMashIntro(_tileA, _tileB, instruction);
+                    _phaseTimer = revealView.MashIntroSeconds;
+                }
+                SoundManager.Instance.DuckForSeconds(0.5f, _phaseTimer);
+            }
+            else
+            {
+                _phaseTimer = 2f; // 従来動作(演出なし)
+                SoundManager.Instance.DuckForSeconds(0.5f, 2f);
+            }
+
             SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
         }
 
@@ -267,6 +336,8 @@ namespace KaniTactics.Game
         {
             _phaseTimer -= Time.deltaTime;
             if (_phaseTimer > 0f) return;
+
+            if (revealView != null) revealView.Hide();
 
             if (_matchup.IsImmediate)
             {
@@ -282,7 +353,7 @@ namespace KaniTactics.Game
                     _cpuCpsThisMash = _brain.EffectiveCps(_mashCount); // 疲労込みの実効CPS
                 _phaseTimer = _config.MashSeconds;
                 _phase = Phase.Mash;
-                SoundManager.Instance.PlayLoopSe(seMashLoop);
+                if (hudVisibility != null) hudVisibility.ShowMashOnly();
                 if (mashGauge != null) mashGauge.Show();
                 if (crabStage != null) crabStage.BeginClash();
                 SwitchMaps(select: false, mashP1: true, mashP2: IsVersus, system: false);
@@ -296,14 +367,14 @@ namespace KaniTactics.Game
         private void UpdateMash()
         {
             var p1 = _controls.MashP1;
-            if (p1.TapLeft.WasPressedThisFrame()) _tapsA.RegisterTap(0);
-            if (p1.TapRight.WasPressedThisFrame()) _tapsA.RegisterTap(1);
+            if (p1.TapLeft.WasPressedThisFrame() && _tapsA.RegisterTap(0)) SoundManager.Instance.PlaySe(seTap);
+            if (p1.TapRight.WasPressedThisFrame() && _tapsA.RegisterTap(1)) SoundManager.Instance.PlaySe(seTap);
 
             if (IsVersus)
             {
                 var p2 = _controls.MashP2;
-                if (p2.TapLeft.WasPressedThisFrame()) _tapsB.RegisterTap(0);
-                if (p2.TapRight.WasPressedThisFrame()) _tapsB.RegisterTap(1);
+                if (p2.TapLeft.WasPressedThisFrame() && _tapsB.RegisterTap(0)) SoundManager.Instance.PlaySe(seTap);
+                if (p2.TapRight.WasPressedThisFrame() && _tapsB.RegisterTap(1)) SoundManager.Instance.PlaySe(seTap);
             }
             else
             {
@@ -350,7 +421,6 @@ namespace KaniTactics.Game
             _state.AwardWin(_roundWinner.Value);
             _phase = Phase.Result;
             _phaseTimer = 2f;
-            SoundManager.Instance.StopLoopSe();
             SoundManager.Instance.PlaySe(_roundWinner == Player.A ? seRoundWin : seRoundLose);
             SoundManager.Instance.DuckForSeconds(0.35f, 2f); // Resultフェーズ(2秒)の間だけ絞る
             if (mashGauge != null) mashGauge.Hide();
@@ -388,20 +458,21 @@ namespace KaniTactics.Game
                 _phase = Phase.MatchEnd;
                 SwitchMaps(select: false, mashP1: false, mashP2: false, system: true);
             }
-            else
+            else if (!_transitioning)
             {
-                EnterSelect();
+                // ラウンドの繋ぎ目を暗転で挟む(暗転中に次ラウンドの準備が走る)
+                _transitioning = true;
+                SceneLoader.Instance.FadeAction(EnterRoundIntro);
             }
         }
 
         private void UpdateMatchEnd()
         {
             if (_controls.System.Restart.WasPressedThisFrame())
-                StartMatch();
+                SceneLoader.Instance.FadeAction(StartMatch);
 
-            if (_controls.System.ToTitle.WasPressedThisFrame()
-                && Application.CanStreamedLevelBeLoaded(titleSceneName))
-                SceneManager.LoadScene(titleSceneName);
+            if (_controls.System.ToTitle.WasPressedThisFrame())
+                SceneLoader.Instance.LoadScene(titleSceneName);
         }
 
         // ---- 表示用テキストの構築(Viewへ渡すだけ。描画はMatchHudViewの責務) ----
@@ -415,61 +486,67 @@ namespace KaniTactics.Game
             if (hud == null) return;
 
             string header = $"Round {_displayRound} / スコア {NameOf(Player.A)} {_state.WinsA} - {_state.WinsB} {NameOf(Player.B)}";
-            string hands = $"{NameOf(Player.A)}の手札: {TileList(_state.HandA)}\n{NameOf(Player.B)}の手札: {TileList(_state.HandB)}";
+            // 手札表示は「今選んでいない側=相手」のみ。自分の手札は選択カーソル(MainText/左下)で見えるため重複させない。
+            // ローカル2Pでは選択者が交代するたびに、公開される手札も自動で入れ替わる。
+            Player opponent = _selecting == Player.A ? Player.B : Player.A;
+            var opponentHand = opponent == Player.A ? _state.HandA : _state.HandB;
+            string hands = $"{NameOf(opponent)}の手札: {TileList(opponentHand)}";
             string main, sub;
 
             switch (_phase)
             {
+                case Phase.RoundIntro:
+                    main = "";
+                    sub = "";
+                    break;
+
                 case Phase.Select:
-                    main = $"◆ {NameOf(_selecting)} の選択フェーズ(残り {_phaseTimer:F0} 秒)\n{CursorView()}";
+                    // MainTextは残り時間のみ
+                    main = $"{Mathf.CeilToInt(Mathf.Max(_phaseTimer, 0f))}";
                     sub = IsVersus
-                        ? "1-9キー直接 / ←→で移動 / Enterで確定(相手は画面から目を離すこと!)"
+                        ? $"{NameOf(_selecting)} の番 / 1-9キー・←→で選び Enterで確定(相手は画面から目を離すこと!)"
                         : "1-9キー直接 / ←→で移動 / Enterで確定";
                     break;
 
                 case Phase.Reveal:
-                    main = $"◆ 公開!  {NameOf(Player.A)}: {_tileA}  vs  {NameOf(Player.B)}: {_tileB}";
-                    sub = MatchupView();
+                    // 演出View割り当て時は牌・見出し・カウントダウンをそちらが表示するため、HUDは空にする
+                    main = "";
+                    sub = revealView != null ? "" : MatchupView();
                     break;
 
                 case Phase.Mash:
-                    // 連打数は表示しない(ブラックボックス化)。状況はゲージだけで伝える
-                    main = $"◆ 連打フェーズ!(残り {_phaseTimer:F1} 秒)";
+                    // MainTextは残り時間のみ。連打数は出さない(ブラックボックス化)
+                    main = $"{_phaseTimer:F1}";
                     sub = IsVersus
                         ? $"P1: A/D、P2: ←/→ を交互に! {MatchupView()}"
                         : $"AとDを交互に! {MatchupView()}";
                     break;
 
                 case Phase.Result:
-                    main = $"◆ このラウンドは {NameOf(_roundWinner.Value)} の勝ち!";
-                    sub = "";
+                    main = "";
+                    sub = $"このラウンドは {NameOf(_roundWinner.Value)} の勝ち!";
                     break;
 
                 case Phase.MatchEnd:
                 default:
                     var w = _state.MatchWinner;
-                    main = $"◆ 試合終了! 勝者: {(w.HasValue ? NameOf(w.Value) : "引き分け")}  ({_state.WinsA} - {_state.WinsB})";
-                    // 隠しヒント: ソロのハード(難易度2)を勝利し、名人が未解放のときだけ
-                    if (!IsVersus && cpuDifficulty == 2 && w == Player.A && !TitleMenuController.IsMeijinUnlocked)
-                        main += "\n「……タイトルで、ハサミを九回打ち鳴らせ」";
-                    sub = "Rキーで再戦 / Escでタイトルへ";
+                    main = "";
+                    sub = $"試合終了! 勝者: {(w.HasValue ? NameOf(w.Value) : "引き分け")}  ({_state.WinsA} - {_state.WinsB})\nRキーで再戦 / Escでタイトルへ";
                     break;
             }
 
             hud.Render(header, hands, main, sub);
 
-            // 牌の画像表示(TileRowView割り当て時のみ有効)。選択中はカーソル位置を強調
+            // 牌の列で表示する場合の更新(未割り当てなら何も起きない)。選択中はカーソル位置を強調
             int? cursorTile = null;
             if (_phase == Phase.Select && !_paused && _handSorted != null && _handSorted.Count > 0)
                 cursorTile = _handSorted[_cursor];
-            hud.RenderTileRows(_state.HandA, _state.HandB, cursorTile, _selecting);
+            var selfHand = _selecting == Player.A ? _state.HandA : _state.HandB;
+            hud.RenderTileRows(selfHand, opponentHand, cursorTile);
         }
 
         private static string TileList(IReadOnlyCollection<int> hand)
             => string.Join(" ", hand.OrderBy(t => t));
-
-        private string CursorView()
-            => string.Join(" ", _handSorted.Select((t, i) => i == _cursor ? $"[{t}]" : $" {t} "));
 
         private string MatchupView()
         {
