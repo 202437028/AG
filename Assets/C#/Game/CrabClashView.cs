@@ -43,8 +43,10 @@ namespace KaniTactics.Game
         [SerializeField] private float hopsPerSecond = 2.5f;
         [Tooltip("負けカニの転がる角度")]
         [SerializeField] private float rollDegrees = 110f;
-        [Tooltip("負けカニの沈み込み量")]
-        [SerializeField] private float sinkDepth = 0.15f;
+        [Tooltip("負けカニがやられて高速回転する速さ(度/秒)")]
+        [SerializeField] private float flipSpinSpeed = 2960f;
+        [Tooltip("負けカニがひっくり返る時に浮く高さ(リングにめり込まないよう沈まず浮かせる)")]
+        [SerializeField] private float flipLift = 0.3f;
 
         [Header("アニメーション(任意。未割り当てなら位置演出のみ)")]
         [SerializeField] private Animator animatorA;
@@ -146,8 +148,11 @@ namespace KaniTactics.Game
                     float roll = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_resultTime / 0.6f));
 
                     var winPosOffset = Vector3.up * hop;
-                    var losePosOffset = Vector3.down * (sinkDepth * roll);
-                    var loseRot = Quaternion.Euler(0f, 0f, rollDegrees * roll * dir);
+                    // 敗者は沈めず、その場でわずかに浮きながらひっくり返る(床へのめり込み防止)
+                    var losePosOffset = Vector3.up * (flipLift * roll);
+                    // Z軸: ひっくり返る / Y軸: やられて高速回転(時間で回り続ける)
+                    float spinY = _resultTime * flipSpinSpeed;
+                    var loseRot = Quaternion.Euler(0f, spinY, rollDegrees * roll * dir);
 
                     desiredPosA = _resultBaseA + (aWon ? winPosOffset : losePosOffset);
                     desiredPosB = _resultBaseB + (aWon ? losePosOffset : winPosOffset);

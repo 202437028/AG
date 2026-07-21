@@ -18,23 +18,26 @@ namespace KaniTactics.Game
         [SerializeField] private GameObject opponentRow;
         [Tooltip("自分の手札の列(左下)")]
         [SerializeField] private GameObject selfRow;
+        [Tooltip("PAUSEボタン")]
+        [SerializeField] private GameObject pauseButton;
 
         /// <summary>選択フェーズ・ラウンド開始時: 全部表示。</summary>
-        public void ShowAll() => Apply(true, true, true, true, true);
+        public void ShowAll() => Apply(true, true, true, true, true, true);
 
         /// <summary>判定・カウントダウン中: 演出以外を全部隠す。</summary>
-        public void HideAll() => Apply(false, false, false, false, false);
+        public void HideAll() => Apply(false, false, false, false, false, false);
 
-        /// <summary>連打フェーズ: ヘッダ・残り時間・操作説明のみ表示(手札は隠す)。</summary>
-        public void ShowMashOnly() => Apply(true, true, true, false, false);
+        /// <summary>連打フェーズ: ヘッダ・残り時間・操作説明のみ表示(手札・PAUSEは隠す)。</summary>
+        public void ShowMashOnly() => Apply(true, true, true, false, false, false);
 
-        private void Apply(bool header, bool timer, bool sub, bool opponent, bool self)
+        private void Apply(bool header, bool timer, bool sub, bool opponent, bool self, bool pause)
         {
             SetActive(headerText, header);
             SetActive(timerText, timer);
             SetActive(subText, sub);
             SetActive(opponentRow, opponent);
             SetActive(selfRow, self);
+            SetActive(pauseButton, pause);
         }
 
         private static void SetActive(GameObject target, bool value)

@@ -29,6 +29,10 @@ namespace KaniTactics.Game
         [SerializeField] private AudioClip bgmTitle;
         [SerializeField] private AudioClip seClick;   // ボタン決定
         [SerializeField] private AudioClip seUnlock;  // 名人解放
+        [SerializeField] private AudioClip seSecretTap; // 隠しコマンドの連打1回ごと
+
+        /// <summary>隠しコマンドの打鍵音。TitleSecretCommandから呼ぶ。</summary>
+        public void PlaySecretTap() => SoundManager.Instance.PlaySe(seSecretTap);
 
         /// <summary>名人モードが解放済みか(PlayerPrefsで永続化)。</summary>
         public static bool IsMeijinUnlocked => PlayerPrefs.GetInt(MeijinPrefKey, 0) == 1;
@@ -65,8 +69,11 @@ namespace KaniTactics.Game
         public void OnSoloButton()
         {
             SoundManager.Instance.PlaySe(seClick);
-            if (mainPanel != null) mainPanel.SetActive(false);
-            if (difficultyPanel != null) difficultyPanel.SetActive(true);
+            SceneLoader.Instance.FadeAction(() =>
+            {
+                if (mainPanel != null) mainPanel.SetActive(false);
+                if (difficultyPanel != null) difficultyPanel.SetActive(true);
+            });
         }
 
         /// <summary>難易度ボタン用。OnClickの引数に 0=イージー 1=ノーマル 2=ハード 3=名人 を渡す。</summary>
@@ -92,7 +99,7 @@ namespace KaniTactics.Game
         public void OnBackButton()
         {
             SoundManager.Instance.PlaySe(seClick);
-            ShowMain();
+            SceneLoader.Instance.FadeAction(ShowMain);
         }
 
         /// <summary>「ゲーム終了」ボタン。エディタ再生中は何も起きない(ビルドでのみ有効)。</summary>

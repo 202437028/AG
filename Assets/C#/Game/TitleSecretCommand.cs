@@ -27,8 +27,8 @@ namespace KaniTactics.Game
             var kb = Keyboard.current;
             if (kb == null) return;
 
-            if (kb.aKey.wasPressedThisFrame) _taps.RegisterTap(0);
-            if (kb.dKey.wasPressedThisFrame) _taps.RegisterTap(1);
+            if (kb.aKey.wasPressedThisFrame && _taps.RegisterTap(0)) { if (title != null) title.PlaySecretTap(); }
+            if (kb.dKey.wasPressedThisFrame && _taps.RegisterTap(1)) { if (title != null) title.PlaySecretTap(); }
 
             if (_taps.Count > 0)
             {

@@ -30,6 +30,10 @@ namespace KaniTactics.Game
         [SerializeField] private CameraDirector cameraDirector;
         [Tooltip("フェーズごとのHUD表示制御(任意)")]
         [SerializeField] private HudVisibilityDirector hudVisibility;
+
+        [Header("プレイヤー色(牌の数字色)")]
+        [SerializeField] private Color color1P = new Color(0.76f, 0.15f, 0.13f); // 赤
+        [SerializeField] private Color color2P = new Color(0.16f, 0.31f, 0.79f); // 青
         [SerializeField] private GameMode mode = GameMode.SoloCpu;
         [Tooltip("SoloCpu時のみ使用。0=イージー(5cps) 1=ノーマル(7) 2=ハード(9) 3=名人(16)")]
         [SerializeField, Range(0, 3)] private int cpuDifficulty = 1;
@@ -42,6 +46,8 @@ namespace KaniTactics.Game
 
         [Header("サウンド(未割り当ての音は鳴らないだけ)")]
         [SerializeField] private AudioClip bgmBattle;
+        [Tooltip("ソロで敗北したときのBGM。ふたりでは勝者がいるので使わない(通常BGMのまま)")]
+        [SerializeField] private AudioClip bgmSoloLose;
         [SerializeField] private AudioClip seConfirm;   // 牌決定
         [SerializeField] private AudioClip seReveal;    // 公開
         [SerializeField] private AudioClip seTap;       // 連打の打鍵1回ごと(A/D共通)
@@ -51,7 +57,8 @@ namespace KaniTactics.Game
         [SerializeField] private AudioClip seMatchLose; // 試合敗北(P1視点)
 
         private bool _paused;
-        private bool _transitioning; // ラウンド間のフェード中
+        private bool _transitioning;      // ラウンド間のフェード中
+        private bool _switchingPlayer;    // ローカル2Pの手番交代フェード中
 
         private RuleConfig _config;
         private MatchState _state;
@@ -220,7 +227,7 @@ namespace KaniTactics.Game
                 SetPaused(!_paused);
                 return;
             }
-            if (_paused) return; // ポーズ中はタイマーも入力も止まる
+            if (_paused || _switchingPlayer) return; // ポーズ中・手番交代フェード中はタイマーも入力も止まる
 
             var sel = _controls.Select;
             _phaseTimer -= Time.deltaTime;
@@ -282,7 +289,14 @@ namespace KaniTactics.Game
                 if (_selecting == Player.A)
                 {
                     _tileA = picked;
-                    BeginSelection(Player.B); // 交代してP2の選択へ
+                    // 暗転を挟んで2Pへ交代。暗転中に手札表示が1P用→2P用へ入れ替わる
+                    _switchingPlayer = true;
+                    SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
+                    SceneLoader.Instance.FadeAction(() =>
+                    {
+                        BeginSelection(Player.B);
+                        _switchingPlayer = false;
+                    });
                     return;
                 }
                 _tileB = picked;
@@ -453,8 +467,13 @@ namespace KaniTactics.Game
             {
                 if (_cpsLog.Count > 0)
                     Debug.Log($"[CPS計測] 平均 {_cpsLog.Average():F2} / 最小 {_cpsLog.Min():F2} / 最大 {_cpsLog.Max():F2} (連打{_cpsLog.Count}回)");
+                bool playerLost = _state.MatchWinner == Player.B;
                 SoundManager.Instance.PlaySe(_state.MatchWinner == Player.A ? seMatchWin : seMatchLose);
-                SoundManager.Instance.DuckMute(); // 試合終了ジングルの間はBGMを完全ミュート(次の試合開始で自動復帰)
+                // ソロで敗北したときだけ専用の敗北BGMへ。ふたりでは必ず誰かが勝つので通常BGMのまま
+                if (!IsVersus && playerLost && bgmSoloLose != null)
+                    SoundManager.Instance.PlayBgm(bgmSoloLose);
+                else
+                    SoundManager.Instance.DuckMute();
                 _phase = Phase.MatchEnd;
                 SwitchMaps(select: false, mashP1: false, mashP2: false, system: true);
             }
@@ -485,7 +504,7 @@ namespace KaniTactics.Game
         {
             if (hud == null) return;
 
-            string header = $"Round {_displayRound} / スコア {NameOf(Player.A)} {_state.WinsA} - {_state.WinsB} {NameOf(Player.B)}";
+            string header = $"Round {_displayRound}   {_state.WinsA} - {_state.WinsB}";
             // 手札表示は「今選んでいない側=相手」のみ。自分の手札は選択カーソル(MainText/左下)で見えるため重複させない。
             // ローカル2Pでは選択者が交代するたびに、公開される手札も自動で入れ替わる。
             Player opponent = _selecting == Player.A ? Player.B : Player.A;
@@ -502,7 +521,7 @@ namespace KaniTactics.Game
 
                 case Phase.Select:
                     // MainTextは残り時間のみ
-                    main = $"{Mathf.CeilToInt(Mathf.Max(_phaseTimer, 0f))}";
+                    main = $"残り {Mathf.CeilToInt(Mathf.Max(_phaseTimer, 0f))} 秒";
                     sub = IsVersus
                         ? $"{NameOf(_selecting)} の番 / 1-9キー・←→で選び Enterで確定(相手は画面から目を離すこと!)"
                         : "1-9キー直接 / ←→で移動 / Enterで確定";
@@ -516,7 +535,7 @@ namespace KaniTactics.Game
 
                 case Phase.Mash:
                     // MainTextは残り時間のみ。連打数は出さない(ブラックボックス化)
-                    main = $"{_phaseTimer:F1}";
+                    main = $"残り {_phaseTimer:F1} 秒";
                     sub = IsVersus
                         ? $"P1: A/D、P2: ←/→ を交互に! {MatchupView()}"
                         : $"AとDを交互に! {MatchupView()}";
@@ -542,7 +561,11 @@ namespace KaniTactics.Game
             if (_phase == Phase.Select && !_paused && _handSorted != null && _handSorted.Count > 0)
                 cursorTile = _handSorted[_cursor];
             var selfHand = _selecting == Player.A ? _state.HandA : _state.HandB;
-            hud.RenderTileRows(selfHand, opponentHand, cursorTile);
+            // 1P=赤 / 2P=青 をプレイヤーに固定。手番が変わると自分/相手の色も入れ替わる。
+            // ソロは常にプレイヤー=A=赤、CPU=B=青。
+            Color selfColor = _selecting == Player.A ? color1P : color2P;
+            Color oppColor = _selecting == Player.A ? color2P : color1P;
+            hud.RenderTileRows(selfHand, opponentHand, cursorTile, selfColor, oppColor);
         }
 
         private static string TileList(IReadOnlyCollection<int> hand)

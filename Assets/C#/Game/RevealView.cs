@@ -75,6 +75,7 @@ namespace KaniTactics.Game
         private void Begin()
         {
             if (_routine != null) StopCoroutine(_routine);
+            if (hudVisibility != null) hudVisibility.HideAll(); // 牌を出す前にHUD(PAUSE・手札等)を隠す
             if (root != null) root.SetActive(true);
             if (cardA != null) cardA.SetVisible(false);
             if (cardB != null) cardB.SetVisible(false);
@@ -102,7 +103,6 @@ namespace KaniTactics.Game
             SetText(headlineText, "連打バトル発生!");
             SetText(instructionText, instruction);
             SoundManager.Instance.PlaySe(seJudge); // 判定(ドドン!)
-            if (hudVisibility != null) hudVisibility.HideAll(); // 判定の瞬間から演出だけを見せる
             yield return new WaitForSeconds(headlineSeconds);
 
             // カウントダウンからは数字だけを残す(牌・見出し・操作説明を畳む)
@@ -130,7 +130,6 @@ namespace KaniTactics.Game
             SetText(headlineText, "大差勝ち");
             SetText(instructionText, score);
             SoundManager.Instance.PlaySe(seJudge); // 判定(ドドン!)
-            if (hudVisibility != null) hudVisibility.HideAll(); // 判定の瞬間から演出だけを見せる
             yield return new WaitForSeconds(immediateHoldSeconds);
 
             _routine = null;

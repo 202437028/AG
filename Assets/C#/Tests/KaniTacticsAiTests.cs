@@ -1,188 +1,196 @@
-using System;
-using NUnit.Framework;
+using UnityEngine;
 using KaniTactics.Core;
 
-namespace KaniTactics.Tests
+namespace KaniTactics.Game
 {
-    public class CpuFatigueTests
+    /// <summary>
+    /// カニ2体の演出View。3つのモードを持つ:
+    ///   Home   … 定位置でアイドル
+    ///   Clash  … 押し合い(ゲージと同じ正規化値で駆動。バーの境界と衝突点が一致する)
+    ///   Result … 勝ちカニが跳ね、負けカニが転がる(クリップ不要のプロシージャル演出)
+    /// </summary>
+    public sealed class CrabClashView : MonoBehaviour
     {
-        [Test]
-        public void 実効CPSは連打回数に応じて指数減衰する()
-        {
-            var config = new RuleConfig { CpuCps = new[] { 10f }, CpuFatigueRatePerMash = 0.1f,
-                                          CpuEquilibriumRate = new[] { 1f } };
-            var brain = new CpuBrain(config, 0, new Random(1));
+        private enum Mode { Home, Clash, Result }
 
-            Assert.AreEqual(10f, brain.EffectiveCps(0), 1e-4);
-            Assert.AreEqual(9f, brain.EffectiveCps(1), 1e-4);
-            Assert.AreEqual(8.1f, brain.EffectiveCps(2), 1e-4);
+        [Tooltip("左側のカニ(P1/あなた)")]
+        [SerializeField] private Transform crabA;
+        [Tooltip("右側のカニ(P2/CPU)")]
+        [SerializeField] private Transform crabB;
+
+        [Header("配置")]
+        [Tooltip("カメラが逆側から見る配置のとき有効化。押し合いの左右を反転する")]
+        [SerializeField] private bool mirrored = false;
+
+        [Header("押し合いの動き")]
+        [Tooltip("衝突点が中央から左右に動ける最大距離")]
+        [SerializeField] private float pushRange = 2f;
+        [Tooltip("衝突点から各カニの中心までの距離(ハサミが噛み合う間合い)")]
+        [SerializeField] private float contactGap = 0.8f;
+        [Tooltip("位置の追従速度。ゲージのsmoothSpeedと同じ値にすると完全に同期する")]
+        [SerializeField] private float smoothSpeed = 6f;
+
+        [Header("踏ん張り演出")]
+        [Tooltip("押し合い中の揺れ幅。拮抗しているほど強く揺れる")]
+        [SerializeField] private float struggleShake = 0.06f;
+        [Tooltip("押し合い中の前傾角度(モデルの向きによっては符号を調整)")]
+        [SerializeField] private float tiltDegrees = 8f;
+
+        [Header("勝敗演出")]
+        [Tooltip("勝ちカニの跳ねる高さ")]
+        [SerializeField] private float hopHeight = 0.45f;
+        [Tooltip("勝ちカニが1秒あたりに跳ねる回数")]
+        [SerializeField] private float hopsPerSecond = 2.5f;
+        [Tooltip("負けカニの転がる角度")]
+        [SerializeField] private float rollDegrees = 110f;
+        [Tooltip("負けカニがひっくり返る時に浮く高さ(リングにめり込まないよう沈まず浮かせる)")]
+        [SerializeField] private float flipLift = 0.3f;
+
+        [Header("アニメーション(任意。未割り当てなら位置演出のみ)")]
+        [SerializeField] private Animator animatorA;
+        [SerializeField] private Animator animatorB;
+        [Tooltip("Animator ControllerのBoolパラメータ名。押し合い中にtrueになる")]
+        [SerializeField] private string clashingBoolParam = "Clashing";
+
+        private Vector3 _homeA, _homeB;
+        private Quaternion _homeRotA, _homeRotB;
+        // 結果演出の基準(押し合い終了時の位置。定位置に戻さずその場で演出するため)
+        private Vector3 _resultBaseA, _resultBaseB;
+        private Quaternion _resultBaseRotA, _resultBaseRotB;
+        private float _current = 0.5f;
+        private float _target = 0.5f;
+        private Mode _mode = Mode.Home;
+        private float _resultTime;
+        private Player _resultWinner;
+
+        private void Awake()
+        {
+            if (crabA != null) { _homeA = crabA.localPosition; _homeRotA = crabA.localRotation; }
+            if (crabB != null) { _homeB = crabB.localPosition; _homeRotB = crabB.localRotation; }
         }
 
-        [Test]
-        public void 疲労率0なら減衰しない()
+        /// <summary>連打フェーズ開始。中央で組み合った状態から始める。</summary>
+        public void BeginClash()
         {
-            var config = new RuleConfig { CpuCps = new[] { 16f }, CpuFatigueRatePerMash = 0f,
-                                          CpuEquilibriumRate = new[] { 1f } };
-            var brain = new CpuBrain(config, 0, new Random(1));
-
-            Assert.AreEqual(16f, brain.EffectiveCps(10), 1e-4);
-        }
-    }
-
-    public class CpsTrackerTests
-    {
-        [Test]
-        public void 計測前は事前値を返す()
-        {
-            var t = new CpsTracker(priorCps: 8f);
-            Assert.AreEqual(8f, t.Estimate, 1e-4);
+            _current = _target = 0.5f;
+            _mode = Mode.Clash;
+            SetClashingAnim(true);
         }
 
-        [Test]
-        public void 記録後は移動平均を返す()
+        /// <summary>ラウンド結果の演出を開始する。勝ちカニが跳ね、負けカニが転がる。</summary>
+        public void PlayResult(Player winner)
         {
-            var t = new CpsTracker(8f, windowSize: 4);
-            t.Record(10f);
-            t.Record(14f);
-            Assert.AreEqual(12f, t.Estimate, 1e-4);
+            _resultWinner = winner;
+            _resultTime = 0f;
+            // 押し合いが終わった「その場」を基準にする(定位置へ戻さない)
+            if (crabA != null) { _resultBaseA = crabA.localPosition; _resultBaseRotA = crabA.localRotation; }
+            if (crabB != null) { _resultBaseB = crabB.localPosition; _resultBaseRotB = crabB.localRotation; }
+            _mode = Mode.Result;
+            SetClashingAnim(false);
         }
 
-        [Test]
-        public void ウィンドウを超えた古い記録は落ちる()
+        /// <summary>定位置のアイドルへ戻す(選択フェーズ突入時に呼ぶ)。</summary>
+        public void ReturnHome()
         {
-            var t = new CpsTracker(8f, windowSize: 2);
-            t.Record(100f); // 落ちる
-            t.Record(10f);
-            t.Record(14f);
-            Assert.AreEqual(12f, t.Estimate, 1e-4);
-        }
-    }
-
-    public class MashWinEstimatorTests
-    {
-        private static RuleConfig Config() => new RuleConfig();
-
-        [Test]
-        public void 正規分布CDFの中心は0_5()
-        {
-            Assert.AreEqual(0.5f, MashWinEstimator.NormalCdf(0f), 1e-3);
+            _mode = Mode.Home;
+            SetClashingAnim(false);
         }
 
-        [Test]
-        public void 同数マッチで平均連打がCPUと同じなら勝率は約50パーセント()
+        /// <summary>0=B(右)側が押し切り、1=A(左)側が押し切り、0.5=拮抗。ゲージと同じ値を渡す。</summary>
+        public void SetTarget(float normalized) => _target = Mathf.Clamp01(normalized);
+
+        private void SetClashingAnim(bool value)
         {
-            var m = MatchupJudge.Judge(5, 5, Config());
-            float p = MashWinEstimator.PlayerWinProb(m, playerMeanTaps: 100f, playerCv: 0.15f, cpuTaps: 100f);
-            Assert.AreEqual(0.5f, p, 1e-3);
+            if (animatorA != null) animatorA.SetBool(clashingBoolParam, value);
+            if (animatorB != null) animatorB.SetBool(clashingBoolParam, value);
         }
 
-        [Test]
-        public void 平均連打が高いほど勝率は単調に上がる()
+        private void Update()
         {
-            var m = MatchupJudge.Judge(5, 5, Config());
-            float p1 = MashWinEstimator.PlayerWinProb(m, 90f, 0.15f, 100f);
-            float p2 = MashWinEstimator.PlayerWinProb(m, 100f, 0.15f, 100f);
-            float p3 = MashWinEstimator.PlayerWinProb(m, 110f, 0.15f, 100f);
-            Assert.Less(p1, p2);
-            Assert.Less(p2, p3);
-        }
+            if (crabA == null || crabB == null) return;
 
-        [Test]
-        public void プレイヤー有利側なら同連打力でも勝率は50パーセント超()
-        {
-            var m = MatchupJudge.Judge(9, 8, Config()); // A(プレイヤー)が1段有利
-            float p = MashWinEstimator.PlayerWinProb(m, 100f, 0.15f, 100f);
-            Assert.Greater(p, 0.5f);
-        }
+            Vector3 desiredPosA, desiredPosB;
+            Quaternion desiredRotA, desiredRotB;
+            float dir = mirrored ? -1f : 1f;
 
-        [Test]
-        public void 即決着は0か1を返す()
-        {
-            var win = MatchupJudge.Judge(9, 3, Config());
-            var lose = MatchupJudge.Judge(3, 9, Config());
-            Assert.AreEqual(1f, MashWinEstimator.PlayerWinProb(win, 100f, 0.15f, 100f), 1e-6);
-            Assert.AreEqual(0f, MashWinEstimator.PlayerWinProb(lose, 100f, 0.15f, 100f), 1e-6);
-        }
-    }
-
-    public class EquilibriumSolverTests
-    {
-        [Test]
-        public void 混合戦略の合計は1になる()
-        {
-            var payoff = new float[,] { { 0.5f, 0.7f }, { 0.3f, 0.5f } };
-            var mix = EquilibriumSolver.SolveRowStrategy(payoff);
-
-            float sum = 0;
-            foreach (var p in mix) sum += p;
-            Assert.AreEqual(1f, sum, 1e-3);
-        }
-
-        [Test]
-        public void 支配戦略にはほぼ全ての重みが乗る()
-        {
-            // 行0が行1を厳密支配するpayoff
-            var payoff = new float[,] { { 0.9f, 0.8f }, { 0.2f, 0.1f } };
-            var mix = EquilibriumSolver.SolveRowStrategy(payoff);
-
-            Assert.Greater(mix[0], 0.95f);
-        }
-
-        [Test]
-        public void ジャンケン型ゲームはほぼ均等ミックスになる()
-        {
-            // 3すくみ(勝ち0.9/負け0.1/あいこ0.5)
-            var payoff = new float[,]
+            switch (_mode)
             {
-                { 0.5f, 0.9f, 0.1f },
-                { 0.1f, 0.5f, 0.9f },
-                { 0.9f, 0.1f, 0.5f },
-            };
-            var mix = EquilibriumSolver.SolveRowStrategy(payoff, iterations: 3000);
+                case Mode.Clash:
+                {
+                    _current = Mathf.Lerp(_current, _target, smoothSpeed * Time.deltaTime);
 
-            foreach (var p in mix)
-                Assert.AreEqual(1f / 3f, p, 0.06f);
-        }
-    }
+                    // 0.5=中央。Aが優勢(→1)なほど衝突点がB側へ食い込む
+                    float clashX = (_current - 0.5f) * 2f * pushRange * dir;
 
-    public class CpuBrainTests
-    {
-        private static RuleConfig Config() => new RuleConfig();
+                    // 拮抗しているほど激しく震える(Perlinノイズでガタつかず滑らかに)
+                    float intensity = 1f - Mathf.Abs(_current - 0.5f) * 2f;
+                    float t = Time.time * 13f;
+                    var jitterA = JitterOffset(t, 0f) * struggleShake * intensity;
+                    var jitterB = JitterOffset(t, 7.3f) * struggleShake * intensity;
 
-        [Test]
-        public void 残り1枚ならその牌を出す()
-        {
-            var config = Config();
-            var state = new MatchState(config);
-            // 双方8枚消費して1枚ずつ残す
-            int[] a = { 1, 2, 3, 4, 5, 6, 7, 8 };
-            int[] b = { 2, 3, 4, 5, 6, 7, 8, 9 };
-            for (int i = 0; i < 8; i++) state.ConsumeTiles(a[i], b[i]);
+                    desiredPosA = new Vector3(clashX - contactGap * dir, _homeA.y, _homeA.z) + jitterA;
+                    desiredPosB = new Vector3(clashX + contactGap * dir, _homeB.y, _homeB.z) + jitterB;
+                    desiredRotA = _homeRotA * Quaternion.Euler(0f, 0f, -tiltDegrees * dir);
+                    desiredRotB = _homeRotB * Quaternion.Euler(0f, 0f, tiltDegrees * dir);
+                    break;
+                }
 
-            var brain = new CpuBrain(config, 3, new Random(1)); // 名人=均衡100%
-            Assert.AreEqual(1, brain.SelectTile(state, 0, 8f));
-        }
+                case Mode.Result:
+                {
+                    _resultTime += Time.deltaTime;
+                    bool aWon = _resultWinner == Player.A;
 
-        [Test]
-        public void 選ばれる牌は必ずCPUの手札に含まれる()
-        {
-            var config = Config();
-            var brain = new CpuBrain(config, 3, new Random(42));
-            var state = new MatchState(config);
-            state.ConsumeTiles(5, 5); // 双方5を消費
+                    // 勝者: ホーム位置でピョンピョン跳ねる
+                    float hop = Mathf.Abs(Mathf.Sin(_resultTime * Mathf.PI * hopsPerSecond)) * hopHeight;
+                    // 敗者: 0.6秒かけて転がって少し沈む(イージング付き)
+                    float roll = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_resultTime / 0.6f));
 
-            for (int i = 0; i < 20; i++)
-            {
-                int tile = brain.SelectTile(state, 0, 12f);
-                Assert.IsTrue(state.HasTile(Player.B, tile), $"手札にない牌 {tile} が選ばれた");
+                    var winPosOffset = Vector3.up * hop;
+                    // 敗者は沈めず、その場でわずかに浮きながらひっくり返る(床へのめり込み防止)
+                    var losePosOffset = Vector3.up * (flipLift * roll);
+                    var loseRot = Quaternion.Euler(0f, 0f, rollDegrees * roll * dir);
+
+                    desiredPosA = _resultBaseA + (aWon ? winPosOffset : losePosOffset);
+                    desiredPosB = _resultBaseB + (aWon ? losePosOffset : winPosOffset);
+                    desiredRotA = aWon ? _resultBaseRotA : _resultBaseRotA * loseRot;
+                    desiredRotB = aWon ? _resultBaseRotB * Quaternion.Inverse(loseRot) : _resultBaseRotB;
+                    break;
+                }
+
+                case Mode.Home:
+                default:
+                    desiredPosA = _homeA;
+                    desiredPosB = _homeB;
+                    desiredRotA = _homeRotA;
+                    desiredRotB = _homeRotB;
+                    break;
             }
+
+            float k = smoothSpeed * Time.deltaTime;
+            // 勝者の跳ねだけは補間せず直接反映(補間すると跳ねが潰れて「浮いてる」だけになる)
+            if (_mode == Mode.Result)
+            {
+                bool aWon = _resultWinner == Player.A;
+                if (aWon) { crabA.localPosition = desiredPosA; }
+                else { crabB.localPosition = desiredPosB; }
+                if (aWon) crabB.localPosition = Vector3.Lerp(crabB.localPosition, desiredPosB, k);
+                else crabA.localPosition = Vector3.Lerp(crabA.localPosition, desiredPosA, k);
+            }
+            else
+            {
+                crabA.localPosition = Vector3.Lerp(crabA.localPosition, desiredPosA, k);
+                crabB.localPosition = Vector3.Lerp(crabB.localPosition, desiredPosB, k);
+            }
+            crabA.localRotation = Quaternion.Slerp(crabA.localRotation, desiredRotA, k);
+            crabB.localRotation = Quaternion.Slerp(crabB.localRotation, desiredRotB, k);
         }
 
-        [Test]
-        public void 難易度が範囲外なら例外()
+        private static Vector3 JitterOffset(float t, float seed)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(
-                () => new CpuBrain(Config(), 4, new Random(1)));
+            // -0.5〜+0.5のPerlinノイズ2軸(水平と上下)
+            float x = Mathf.PerlinNoise(t, seed) - 0.5f;
+            float y = Mathf.PerlinNoise(seed, t) - 0.5f;
+            return new Vector3(x, y * 0.5f, 0f);
         }
     }
 }

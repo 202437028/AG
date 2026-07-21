@@ -27,9 +27,9 @@ namespace KaniTactics.Game
 
         public void Render(string header, string hands, string main, string sub)
         {
-            headerText.text = header;
-            mainText.text = main;
-            subText.text = sub;
+            if (headerText != null) headerText.text = header;
+            if (mainText != null) mainText.text = main;
+            if (subText != null) subText.text = sub;
 
             if (handsText != null)
             {
@@ -49,6 +49,17 @@ namespace KaniTactics.Game
         {
             if (selfRow != null) selfRow.Render(selfHand, highlightTile);
             if (opponentRow != null) opponentRow.Render(opponentHand);
+        }
+
+        /// <summary>手番に応じて、自分/相手の列の数字色を切り替えてから描画する(1P=赤 / 2P=青)。</summary>
+        public void RenderTileRows(IReadOnlyCollection<int> selfHand,
+                                   IReadOnlyCollection<int> opponentHand,
+                                   int? highlightTile,
+                                   Color selfColor, Color opponentColor)
+        {
+            if (selfRow != null) selfRow.SetNumberColor(selfColor);
+            if (opponentRow != null) opponentRow.SetNumberColor(opponentColor);
+            RenderTileRows(selfHand, opponentHand, highlightTile);
         }
     }
 }

@@ -42,6 +42,13 @@ namespace KaniTactics.Game
         private static readonly string[] Kanji =
             { "一", "二", "三", "四", "五", "六", "七", "八", "九" };
 
+        /// <summary>数字の色を実行時に差し替える(1P=赤 / 2P=青 を手番で切り替えるため)。</summary>
+        public void SetNumberColor(Color color)
+        {
+            numberColor = color;
+            for (int i = 0; i < 9; i++) _lastTextState[i] = -1; // 次のRenderで再構築させる
+        }
+
         // テキスト再構築の抑制用(毎フレームのメッシュ再生成を避ける)
         private readonly int[] _lastTextState = new int[9];
 
