@@ -46,15 +46,12 @@ namespace KaniTactics.Game
 
         [Header("サウンド(未割り当ての音は鳴らないだけ)")]
         [SerializeField] private AudioClip bgmBattle;
-        [Tooltip("ソロで敗北したときのBGM。ふたりでは勝者がいるので使わない(通常BGMのまま)")]
-        [SerializeField] private AudioClip bgmSoloLose;
         [SerializeField] private AudioClip seConfirm;   // 牌決定
-        [SerializeField] private AudioClip seReveal;    // 公開
         [SerializeField] private AudioClip seTap;       // 連打の打鍵1回ごと(A/D共通)
-        [SerializeField] private AudioClip seRoundWin;  // ラウンド勝利(P1視点)
-        [SerializeField] private AudioClip seRoundLose; // ラウンド敗北(P1視点)
-        [SerializeField] private AudioClip seMatchWin;  // 試合勝利(P1視点)
-        [SerializeField] private AudioClip seMatchLose; // 試合敗北(P1視点)
+        [Tooltip("ラウンド決着の音。勝敗どちらでも鳴る")]
+        [SerializeField] private AudioClip seRoundWin;
+        [Tooltip("試合終了の音。勝敗どちらでも鳴る")]
+        [SerializeField] private AudioClip seMatchWin;
 
         private bool _paused;
         private bool _transitioning;      // ラウンド間のフェード中
@@ -159,6 +156,9 @@ namespace KaniTactics.Game
         {
             _transitioning = false;
             _displayRound = _state.RoundNumber;
+            // 手番を1Pへ戻す。この処理は暗転中に走るので、手札の色が明転前に1P基準へ切り替わる
+            _selecting = Player.A;
+            _handSorted = (_selecting == Player.A ? _state.HandA : _state.HandB).OrderBy(t => t).ToList();
             if (mashGauge != null) mashGauge.Hide();
             if (crabStage != null) crabStage.ReturnHome();
             if (cameraDirector != null) cameraDirector.EnterSelectMode();
@@ -311,7 +311,10 @@ namespace KaniTactics.Game
             _state.ConsumeTiles(_tileA, _tileB);
             _matchup = MatchupJudge.Judge(_tileA, _tileB, _config);
 
-            SoundManager.Instance.PlaySe(seReveal);
+            // 選択確定の瞬間(ふたりでは2Pの確定時)にHUDを引っ込める。
+            // 牌カードが出る前に手札・PAUSEを消し、公開演出を邪魔しないようにする。
+            if (hudVisibility != null) hudVisibility.HideAll();
+
             if (cameraDirector != null) cameraDirector.EnterBattleMode();
             _phase = Phase.Reveal;
 
@@ -435,7 +438,7 @@ namespace KaniTactics.Game
             _state.AwardWin(_roundWinner.Value);
             _phase = Phase.Result;
             _phaseTimer = 2f;
-            SoundManager.Instance.PlaySe(_roundWinner == Player.A ? seRoundWin : seRoundLose);
+            SoundManager.Instance.PlaySe(seRoundWin); // 勝敗共通
             SoundManager.Instance.DuckForSeconds(0.35f, 2f); // Resultフェーズ(2秒)の間だけ絞る
             if (mashGauge != null) mashGauge.Hide();
             if (crabStage != null) crabStage.PlayResult(_roundWinner.Value);
@@ -467,13 +470,8 @@ namespace KaniTactics.Game
             {
                 if (_cpsLog.Count > 0)
                     Debug.Log($"[CPS計測] 平均 {_cpsLog.Average():F2} / 最小 {_cpsLog.Min():F2} / 最大 {_cpsLog.Max():F2} (連打{_cpsLog.Count}回)");
-                bool playerLost = _state.MatchWinner == Player.B;
-                SoundManager.Instance.PlaySe(_state.MatchWinner == Player.A ? seMatchWin : seMatchLose);
-                // ソロで敗北したときだけ専用の敗北BGMへ。ふたりでは必ず誰かが勝つので通常BGMのまま
-                if (!IsVersus && playerLost && bgmSoloLose != null)
-                    SoundManager.Instance.PlayBgm(bgmSoloLose);
-                else
-                    SoundManager.Instance.DuckMute();
+                SoundManager.Instance.PlaySe(seMatchWin); // 勝敗共通
+                SoundManager.Instance.DuckMute(); // ジングルの間はBGMを完全ミュート(次の試合開始で自動復帰)
                 _phase = Phase.MatchEnd;
                 SwitchMaps(select: false, mashP1: false, mashP2: false, system: true);
             }
@@ -548,13 +546,26 @@ namespace KaniTactics.Game
 
                 case Phase.MatchEnd:
                 default:
-                    var w = _state.MatchWinner;
+                    // 案内は専用テキスト(matchEndText)に出すのでmain/subは空
                     main = "";
-                    sub = $"試合終了! 勝者: {(w.HasValue ? NameOf(w.Value) : "引き分け")}  ({_state.WinsA} - {_state.WinsB})\nRキーで再戦 / Escでタイトルへ";
+                    sub = "";
                     break;
             }
 
             hud.Render(header, hands, main, sub);
+
+            // 試合終了の案内(専用テキスト)。それ以外のフェーズでは空を渡して隠す
+            if (_phase == Phase.MatchEnd)
+            {
+                var w = _state.MatchWinner;
+                hud.RenderMatchEnd(
+                    $"試合終了!  勝者: {(w.HasValue ? NameOf(w.Value) : "引き分け")}  ({_state.WinsA} - {_state.WinsB})\n" +
+                    "Rキーで再戦 / Escでタイトルへ");
+            }
+            else
+            {
+                hud.RenderMatchEnd(null);
+            }
 
             // 牌の列で表示する場合の更新(未割り当てなら何も起きない)。選択中はカーソル位置を強調
             int? cursorTile = null;
