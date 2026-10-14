@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using KaniTactics.Core;
 
 namespace KaniTactics.Game
@@ -19,6 +20,8 @@ namespace KaniTactics.Game
         public CpsTracker CpsTracker { get; }
         /// <summary>この試合で行った連打の回数。CPU疲労の段数に使う</summary>
         public int MashCount { get; set; }
+        /// <summary>プレイヤーの連打ごとのCPS記録(SoloCpuのみ。M5のρ確定用データ)</summary>
+        public List<float> CpsLog { get; } = new List<float>();
 
         // ---- ラウンドごとに書き換わるもの ----
         /// <summary>HUDに出すラウンド番号</summary>
