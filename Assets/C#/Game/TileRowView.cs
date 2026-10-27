@@ -6,11 +6,9 @@ using UnityEngine.UI;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 牌1〜9を「一蟹」〜「九蟹」のテキストで1列表示する汎用View(画像不要)。
     /// 萬子風の二色刷り: 数字の色(1P=赤/2P=青はインスペクタで変更)+ 蟹の色(黒)。
     /// 未使用は指定色、使用済みは灰色、カーソル位置はプレート色と拡大で強調。
-    /// </summary>
     public sealed class TileRowView : MonoBehaviour
     {
         [Tooltip("牌1〜9のテキストを左から順に割り当てる(9個)。文字はスクリプトが自動設定する")]
@@ -39,12 +37,10 @@ namespace KaniTactics.Game
         [Tooltip("カーソル中の牌の拡大率")]
         [SerializeField] private float highlightScale = 1.15f;
 
-        private static readonly string[] Kanji =
-            { "一", "二", "三", "四", "五", "六", "七", "八", "九" };
-
-        /// <summary>数字の色を実行時に差し替える(1P=赤 / 2P=青 を手番で切り替えるため)。</summary>
+        /// 数字の色を実行時に差し替える(1P=赤 / 2P=青 を手番で切り替えるため)。
         public void SetNumberColor(Color color)
         {
+            if (numberColor == color) return; // HUDから毎フレーム呼ばれるので、変化時だけ再構築する
             numberColor = color;
             for (int i = 0; i < 9; i++) _lastTextState[i] = -1; // 次のRenderで再構築させる
         }
@@ -64,10 +60,8 @@ namespace KaniTactics.Game
             }
         }
 
-        /// <summary>
         /// activeTilesに含まれる牌を通常色、含まれない(使用済み)牌を灰色で表示する。
         /// highlightTileを渡すとその牌をプレート色と拡大で強調(選択カーソル用)。
-        /// </summary>
         public void Render(IReadOnlyCollection<int> activeTiles, int? highlightTile = null)
         {
             for (int i = 0; i < slots.Length && i < 9; i++)
@@ -101,13 +95,11 @@ namespace KaniTactics.Game
 
         private void ApplyText(int index, bool active)
         {
-            Color num = active ? numberColor : usedTextColor;
-            Color crab = active ? crabColor : usedTextColor;
-            string numHex = ColorUtility.ToHtmlStringRGBA(num);
-            string crabHex = ColorUtility.ToHtmlStringRGBA(crab);
-            string sep = vertical ? "\n" : "";
-            slots[index].text =
-                $"<color=#{numHex}>{Kanji[index]}</color>{sep}<color=#{crabHex}>{suffix}</color>";
+            slots[index].text = TileLabel.Format(
+                index + 1,
+                active ? numberColor : usedTextColor,
+                active ? crabColor : usedTextColor,
+                suffix, vertical);
         }
     }
 }

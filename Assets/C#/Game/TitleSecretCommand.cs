@@ -4,11 +4,9 @@ using KaniTactics.Core;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// タイトル画面の隠しコマンド検知。AとDを交互に規定回数連打すると名人モードが解放される。
     /// 判定はゲーム本編と同じTapCounter(交互連打のみ有効)を使い回す。
     /// TitleMenuControllerと同じシーンに置き、参照を割り当てる。
-    /// </summary>
     public sealed class TitleSecretCommand : MonoBehaviour
     {
         [SerializeField] private TitleMenuController title;

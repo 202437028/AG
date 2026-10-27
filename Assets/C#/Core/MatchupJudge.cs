@@ -4,22 +4,28 @@ namespace KaniTactics.Core
 {
     public enum Player { A, B }
 
-    /// <summary>牌公開後の判定結果。「即決着」か「連打突入」のどちらか。</summary>
+    public static class PlayerExtensions
+    {
+        /// 対戦相手の側を返す。
+        public static Player Opponent(this Player player) => player == Player.A ? Player.B : Player.A;
+    }
+
+    /// 牌公開後の判定結果。「即決着」か「連打突入」のどちらか。
     public readonly struct MatchupResult
     {
-        /// <summary>連打なしの即決着か。</summary>
+        /// 連打なしの即決着か。
         public readonly bool IsImmediate;
 
-        /// <summary>即決着時の勝者。IsImmediate == false のときは無効値。</summary>
+        /// 即決着時の勝者。IsImmediate == false のときは無効値。
         public readonly Player ImmediateWinner;
 
-        /// <summary>連打時の有利側。同数(段数0)のときは null。</summary>
+        /// 連打時の有利側。同数(段数0)のときは null。
         public readonly Player? FavoredSide;
 
-        /// <summary>有利段数(0 = 同数の等倍勝負)。</summary>
+        /// 有利段数(0 = 同数の等倍勝負)。
         public readonly int AdvantageSteps;
 
-        /// <summary>不利側がこの倍率を「超えれば」逆転勝ち。同数時は 1.0。</summary>
+        /// 不利側がこの倍率を「超えれば」逆転勝ち。同数時は 1.0。
         public readonly float RequiredRatio;
 
         private MatchupResult(bool isImmediate, Player immediateWinner,
@@ -39,12 +45,10 @@ namespace KaniTactics.Core
             => new MatchupResult(false, default, favoredSide, steps, ratio);
     }
 
-    /// <summary>公開された2枚の牌から勝敗判定の分岐を決める。</summary>
+    /// 公開された2枚の牌から勝敗判定の分岐を決める。
     public static class MatchupJudge
     {
-        /// <summary>
         /// 判定順序: ①下剋上(最優先) ②同数 ③差がMashTriggerMaxDiff超なら即決着 ④それ以外は高い側有利の連打。
-        /// </summary>
         public static MatchupResult Judge(int tileA, int tileB, RuleConfig config)
         {
             ValidateTile(tileA, nameof(tileA));

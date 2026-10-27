@@ -4,10 +4,8 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// ポーズ画面の戦績表示。現在スコアと、両者の牌の使用状況(未使用=明・使用済=暗)を表示する。
     /// ポーズパネルの子に配置し、ポーズを開くたびにGameFlowControllerから最新状態が流し込まれる。
-    /// </summary>
     public sealed class PauseStatusView : MonoBehaviour
     {
         [SerializeField] private TMP_Text scoreText;

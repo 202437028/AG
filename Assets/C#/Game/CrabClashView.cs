@@ -3,12 +3,10 @@ using KaniTactics.Core;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// カニ2体の演出View。3つのモードを持つ:
     ///   Home   … 定位置でアイドル
     ///   Clash  … 押し合い(ゲージと同じ正規化値で駆動。バーの境界と衝突点が一致する)
     ///   Result … 勝ちカニが跳ね、負けカニが転がる(クリップ不要のプロシージャル演出)
-    /// </summary>
     public sealed class CrabClashView : MonoBehaviour
     {
         private enum Mode { Home, Clash, Result }
@@ -71,7 +69,7 @@ namespace KaniTactics.Game
             if (crabB != null) { _homeB = crabB.localPosition; _homeRotB = crabB.localRotation; }
         }
 
-        /// <summary>連打フェーズ開始。中央で組み合った状態から始める。</summary>
+        /// 連打フェーズ開始。中央で組み合った状態から始める。
         public void BeginClash()
         {
             _current = _target = 0.5f;
@@ -79,7 +77,7 @@ namespace KaniTactics.Game
             SetClashingAnim(true);
         }
 
-        /// <summary>ラウンド結果の演出を開始する。勝ちカニが跳ね、負けカニが転がる。</summary>
+        /// ラウンド結果の演出を開始する。勝ちカニが跳ね、負けカニが転がる。
         public void PlayResult(Player winner)
         {
             _resultWinner = winner;
@@ -91,14 +89,14 @@ namespace KaniTactics.Game
             SetClashingAnim(false);
         }
 
-        /// <summary>定位置のアイドルへ戻す(選択フェーズ突入時に呼ぶ)。</summary>
+        /// 定位置のアイドルへ戻す(選択フェーズ突入時に呼ぶ)。
         public void ReturnHome()
         {
             _mode = Mode.Home;
             SetClashingAnim(false);
         }
 
-        /// <summary>0=B(右)側が押し切り、1=A(左)側が押し切り、0.5=拮抗。ゲージと同じ値を渡す。</summary>
+        /// 0=B(右)側が押し切り、1=A(左)側が押し切り、0.5=拮抗。ゲージと同じ値を渡す。
         public void SetTarget(float normalized) => _target = Mathf.Clamp01(normalized);
 
         private void SetClashingAnim(bool value)

@@ -4,10 +4,8 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 対戦画面のHUD。表示はこのViewだけが担当し、GameFlowControllerは表示の実装を知らない。
     /// 各テキストは未割り当て(None)でも安全に動く(その表示が省略されるだけ)。
-    /// </summary>
     public sealed class MatchHudView : MonoBehaviour
     {
         [SerializeField] private TMP_Text headerText;  // ラウンド・スコア
@@ -46,9 +44,7 @@ namespace KaniTactics.Game
             }
         }
 
-        /// <summary>
         /// 試合終了の案内を出す。messageがnullまたは空なら非表示になる。
-        /// </summary>
         public void RenderMatchEnd(string message)
         {
             if (matchEndText == null) return;
@@ -59,27 +55,24 @@ namespace KaniTactics.Game
             if (show) matchEndText.text = message;
         }
 
-        /// <summary>
         /// 牌の列を更新する。selfHandは選択中プレイヤーの手札、opponentHandは相手の手札。
         /// highlightTileは自分側の列にだけ効く(選択カーソル)。
-        /// </summary>
-        public void RenderTileRows(IReadOnlyCollection<int> selfHand,
-                                   IReadOnlyCollection<int> opponentHand,
-                                   int? highlightTile)
-        {
-            if (selfRow != null) selfRow.Render(selfHand, highlightTile);
-            if (opponentRow != null) opponentRow.Render(opponentHand);
-        }
-
-        /// <summary>手番に応じて、自分/相手の列の数字色を切り替えてから描画する(1P=赤 / 2P=青)。</summary>
+        /// 数字色は手番に応じて自分/相手の列で切り替える(1P=赤 / 2P=青)。
         public void RenderTileRows(IReadOnlyCollection<int> selfHand,
                                    IReadOnlyCollection<int> opponentHand,
                                    int? highlightTile,
                                    Color selfColor, Color opponentColor)
         {
-            if (selfRow != null) selfRow.SetNumberColor(selfColor);
-            if (opponentRow != null) opponentRow.SetNumberColor(opponentColor);
-            RenderTileRows(selfHand, opponentHand, highlightTile);
+            if (selfRow != null)
+            {
+                selfRow.SetNumberColor(selfColor);
+                selfRow.Render(selfHand, highlightTile);
+            }
+            if (opponentRow != null)
+            {
+                opponentRow.SetNumberColor(opponentColor);
+                opponentRow.Render(opponentHand);
+            }
         }
     }
 }

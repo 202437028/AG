@@ -5,13 +5,11 @@ using KaniTactics.Core;
 
 namespace KaniTactics.Game
 {
-    /// <summary>HUDの表示モード。フェーズごとに出す文言が変わる</summary>
+    /// HUDの表示モード。フェーズごとに出す文言が変わる
     public enum HudMode { Blank, Select, Reveal, Mash, Result, MatchEnd }
 
-    /// <summary>
     /// HUDに出す文字列と色の組み立て専用(掲示板係)。
     /// MatchContextを読んで文言を作り、MatchHudViewへ渡すだけ。描画はView側の責務。
-    /// </summary>
     public sealed class MatchHudPresenter
     {
         private readonly MatchHudView _hud;
@@ -37,8 +35,8 @@ namespace KaniTactics.Game
 
             // 手札表示は「今選んでいない側=相手」のみ。自分の手札は選択カーソルで見えるため重複させない。
             // ローカル2Pでは選択者が交代するたびに、公開される手札も自動で入れ替わる。
-            Player opponent = ctx.Selecting == Player.A ? Player.B : Player.A;
-            var opponentHand = opponent == Player.A ? state.HandA : state.HandB;
+            Player opponent = ctx.Selecting.Opponent();
+            var opponentHand = state.HandOf(opponent);
             string hands = $"{NameOf(ctx, opponent)}の手札: {TileList(opponentHand)}";
 
             BuildPhaseText(ctx, mode, timer, revealShownByView, out string main, out string sub);
@@ -59,10 +57,8 @@ namespace KaniTactics.Game
 
             // 1P=赤 / 2P=青 をプレイヤーに固定。手番が変わると自分/相手の色も入れ替わる。
             // ソロは常にプレイヤー=A=赤、CPU=B=青。
-            var selfHand = ctx.Selecting == Player.A ? state.HandA : state.HandB;
-            Color selfColor = ctx.Selecting == Player.A ? _color1P : _color2P;
-            Color oppColor = ctx.Selecting == Player.A ? _color2P : _color1P;
-            _hud.RenderTileRows(selfHand, opponentHand, cursorTile, selfColor, oppColor);
+            _hud.RenderTileRows(state.HandOf(ctx.Selecting), opponentHand, cursorTile,
+                                ColorOf(ctx.Selecting), ColorOf(opponent));
         }
 
         private void BuildPhaseText(MatchContext ctx, HudMode mode, float timer, bool revealShownByView,
@@ -104,6 +100,8 @@ namespace KaniTactics.Game
                     break;
             }
         }
+
+        private Color ColorOf(Player p) => p == Player.A ? _color1P : _color2P;
 
         private static string NameOf(MatchContext ctx, Player p)
             => ctx.IsVersus ? (p == Player.A ? "P1" : "P2")

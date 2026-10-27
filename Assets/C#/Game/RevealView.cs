@@ -4,12 +4,10 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 公開フェーズの演出。1P → 2P の順に牌を1枚ずつ見せ(ドン! ドン!)、判定を出す(ドドン!)。
     /// ・連打時: 「連打バトル発生!」→ 操作説明 → 3・2・1・開始めいッッ
     /// ・大差時: 「大差勝ち」+ スコア
     /// 所要時間はGameFlowControllerと共有するためプロパティで公開している。
-    /// </summary>
     public sealed class RevealView : MonoBehaviour
     {
         [SerializeField] private GameObject root;          // 演出全体のルート(表示/非表示の切替対象)
@@ -46,20 +44,20 @@ namespace KaniTactics.Game
 
         private Coroutine _routine;
 
-        /// <summary>連打突入演出の総尺(秒)。GameFlowControllerのRevealフェーズ長に使う。</summary>
+        /// 連打突入演出の総尺(秒)。GameFlowControllerのRevealフェーズ長に使う。
         public float MashIntroSeconds => cardRevealStep * 2f + headlineSeconds + countdownStep * 4f;
 
-        /// <summary>大差決着演出の総尺(秒)。</summary>
+        /// 大差決着演出の総尺(秒)。
         public float ImmediateSeconds => cardRevealStep * 2f + immediateHoldSeconds;
 
-        /// <summary>連打突入の演出を再生する。instructionはモード別の操作説明。</summary>
+        /// 連打突入の演出を再生する。instructionはモード別の操作説明。
         public void PlayMashIntro(int tileA, int tileB, string instruction)
         {
             Begin();
             _routine = StartCoroutine(MashIntroRoutine(tileA, tileB, instruction));
         }
 
-        /// <summary>大差決着の演出を再生する。</summary>
+        /// 大差決着の演出を再生する。
         public void PlayImmediate(int tileA, int tileB, string score)
         {
             Begin();
@@ -84,7 +82,7 @@ namespace KaniTactics.Game
             SetText(countdownText, "");
         }
 
-        /// <summary>1P → 2P の順に牌を1枚ずつ公開する(各ドン!)。</summary>
+        /// 1P → 2P の順に牌を1枚ずつ公開する(各ドン!)。
         private IEnumerator RevealCards(int tileA, int tileB)
         {
             if (cardA != null) { cardA.SetTile(tileA); cardA.SetVisible(true); }

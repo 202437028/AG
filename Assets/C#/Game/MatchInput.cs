@@ -3,16 +3,14 @@ using UnityEngine.InputSystem;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 試合中の入力の窓口(受付係)。
     /// KaniTacticsControlsを保持し、フェーズに応じたAction Mapの切替と、
     /// 連打の1打ごとの通知(イベント方式)を担当する。
-    /// </summary>
     public sealed class MatchInput : IDisposable
     {
-        /// <summary>P1の連打1打ごとに通知。引数 0=左(A) 1=右(D)</summary>
+        /// P1の連打1打ごとに通知。引数 0=左(A) 1=右(D)
         public event Action<int> TapP1;
-        /// <summary>P2の連打1打ごとに通知。引数 0=左(←) 1=右(→)</summary>
+        /// P2の連打1打ごとに通知。引数 0=左(←) 1=右(→)
         public event Action<int> TapP2;
 
         private readonly KaniTacticsControls _controls;
@@ -49,7 +47,10 @@ namespace KaniTactics.Game
             if (system) _controls.System.Enable(); else _controls.System.Disable();
         }
 
-        /// <summary>ポーズ中に牌選択の入力だけを止める(Pauseマップは生かしたまま)</summary>
+        /// 全Mapを止める(演出中など、プレイヤー入力を受け付けないフェーズ用)
+        public void DisableAll() => SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
+
+        /// ポーズ中に牌選択の入力だけを止める(Pauseマップは生かしたまま)
         public void SetSelectEnabled(bool enabled)
         {
             if (enabled) _controls.Select.Enable();

@@ -6,30 +6,11 @@ using UnityEngine.UI;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
-    /// 黒フェードを挟んだシーン遷移。初回アクセス時にCanvasごと自動生成され、シーンをまたいで生存する。
+    /// 黒フェードを挟んだシーン遷移。初回アクセス時にCanvasごと自動生成され、シーンをまたいで生存する(PersistentSingleton)。
     /// シーンに何も置く必要はなく、SceneManager.LoadSceneの呼び出しをこれに差し替えるだけでよい。
-    /// </summary>
-    public sealed class SceneLoader : MonoBehaviour
+    public sealed class SceneLoader : PersistentSingleton<SceneLoader>
     {
-        private static SceneLoader _instance;
-
-        public static SceneLoader Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    var go = new GameObject("SceneLoader");
-                    _instance = go.AddComponent<SceneLoader>();
-                    DontDestroyOnLoad(go);
-                }
-                return _instance;
-            }
-        }
-
-        [Tooltip("暗転・明転にかける秒数")]
-        private const float FadeSeconds = 0.25f;
+        private const float FadeSeconds = 0.25f; // 暗転・明転にかける秒数
 
         private CanvasGroup _group;
         private bool _busy;
@@ -60,7 +41,7 @@ namespace KaniTactics.Game
             rect.offsetMax = Vector2.zero;
         }
 
-        /// <summary>暗転 → シーン読み込み → 明転。連打で多重呼び出ししても1回だけ実行される。</summary>
+        /// 暗転 → シーン読み込み → 明転。連打で多重呼び出ししても1回だけ実行される。
         public void LoadScene(string sceneName)
         {
             if (_busy) return;
@@ -69,42 +50,40 @@ namespace KaniTactics.Game
                 Debug.LogWarning($"シーン '{sceneName}' がBuild Settingsに未登録です。");
                 return;
             }
-            StartCoroutine(LoadRoutine(sceneName));
+            StartCoroutine(FadeAround(LoadRoutine(sceneName)));
         }
 
-        /// <summary>暗転 → 処理を実行 → 明転。シーンを変えないリスタートなどに使う。</summary>
+        /// 暗転 → 処理を実行 → 明転。シーンを変えないリスタートなどに使う。
         public void FadeAction(Action action)
         {
             if (_busy) return;
-            StartCoroutine(ActionRoutine(action));
+            StartCoroutine(FadeAround(ActionRoutine(action)));
         }
 
-        private IEnumerator LoadRoutine(string sceneName)
+        /// 暗転 → body(暗転中の処理) → 明転。実行中は入力を遮断し、多重実行を防ぐ。
+        private IEnumerator FadeAround(IEnumerator body)
         {
             _busy = true;
             _group.blocksRaycasts = true;
             yield return Fade(1f);
 
+            yield return body;
+
+            yield return Fade(0f);
+            _group.blocksRaycasts = false;
+            _busy = false;
+        }
+
+        private static IEnumerator LoadRoutine(string sceneName)
+        {
             var op = SceneManager.LoadSceneAsync(sceneName);
             while (!op.isDone) yield return null;
-
-            yield return Fade(0f);
-            _group.blocksRaycasts = false;
-            _busy = false;
         }
 
-        private IEnumerator ActionRoutine(Action action)
+        private static IEnumerator ActionRoutine(Action action)
         {
-            _busy = true;
-            _group.blocksRaycasts = true;
-            yield return Fade(1f);
-
             action?.Invoke();
             yield return null; // 1フレーム置いて画面の更新を待つ
-
-            yield return Fade(0f);
-            _group.blocksRaycasts = false;
-            _busy = false;
         }
 
         private IEnumerator Fade(float target)

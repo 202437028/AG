@@ -4,9 +4,7 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// ラウンド開始の演出。「ROUND ○」→「START!!」を順に出す。
-    /// </summary>
     public sealed class RoundIntroView : MonoBehaviour
     {
         [SerializeField] private GameObject root;
@@ -25,7 +23,7 @@ namespace KaniTactics.Game
 
         private Coroutine _routine;
 
-        /// <summary>演出の総尺(秒)。GameFlowControllerのフェーズ長に使う。</summary>
+        /// 演出の総尺(秒)。GameFlowControllerのフェーズ長に使う。
         public float TotalSeconds => roundSeconds + startSeconds;
 
         public void Play(int roundNumber)

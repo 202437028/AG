@@ -1,16 +1,12 @@
 namespace KaniTactics.Core
 {
-    /// <summary>
     /// 2人ゼロサムゲームの混合戦略ナッシュ均衡を虚構遊び(fictitious play)で近似する。
     /// 各反復で「相手の過去の手の経験分布」への最適反応を選び続けると、
     /// 選択回数の割合が均衡ミックスに収束する(ゼロサムゲームでの収束は既知の結果)。
-    /// </summary>
     public static class EquilibriumSolver
     {
-        /// <summary>
         /// 行側(最大化プレイヤー)の混合戦略を返す。
         /// payoff[i, j] = 行側が手iを、列側が手jを出したときの行側の勝率。
-        /// </summary>
         public static float[] SolveRowStrategy(float[,] payoff, int iterations = 600)
         {
             int rows = payoff.GetLength(0);

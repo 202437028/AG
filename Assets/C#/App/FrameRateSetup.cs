@@ -4,9 +4,7 @@ public static class FrameRateSetup
 {
     private const int TargetFps = 60;
 
-    /// <summary>
     /// 起動時にVSyncを切り、フレームレート上限を60に固定する
-    /// </summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Init()
     {

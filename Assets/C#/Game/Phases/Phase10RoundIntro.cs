@@ -2,64 +2,48 @@ using KaniTactics.Core;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// ラウンド開始演出(ROUND○ / FIGHT!!)。
     /// 前ラウンドの演出を片づけて初期状態に戻し、演出が終わったら選択へ進む。演出が無ければ即座に選択へ。
-    /// </summary>
-    public sealed class Phase10RoundIntro : IMatchPhase
+    public sealed class Phase10RoundIntro : MatchPhaseBase
     {
-        private readonly MatchContext _ctx;
-        private readonly MatchInput _input;
-        private readonly MatchSceneRefs _refs;
-        private readonly System.Action<PhaseId> _changePhase;
-
         private float _timer;
 
         public Phase10RoundIntro(MatchContext ctx, MatchInput input, MatchSceneRefs refs,
                                  System.Action<PhaseId> changePhase)
-        {
-            _ctx = ctx;
-            _input = input;
-            _refs = refs;
-            _changePhase = changePhase;
-        }
+            : base(ctx, input, refs, changePhase) { }
 
-        public HudMode HudMode => HudMode.Blank;
-        public float HudTimer => 0f;
-        public int? CursorTile => null;
+        public override HudMode HudMode => HudMode.Blank;
 
-        public void Enter()
+        public override void Enter()
         {
-            _ctx.DisplayRound = _ctx.State.RoundNumber;
+            Ctx.DisplayRound = Ctx.State.RoundNumber;
             // 手番を1Pへ戻す。この処理は暗転中に走るので、手札の色が明転前に1P基準へ切り替わる
-            _ctx.Selecting = Player.A;
+            Ctx.Selecting = Player.A;
 
-            if (_refs.MashGauge != null) _refs.MashGauge.Hide();
-            if (_refs.CrabStage != null) _refs.CrabStage.ReturnHome();
-            if (_refs.CameraDirector != null) _refs.CameraDirector.EnterSelectMode();
-            if (_refs.HudVisibility != null) _refs.HudVisibility.ShowAll(); // 演出で隠したUIをここで戻す
-            _input.SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
+            if (Refs.MashGauge != null) Refs.MashGauge.Hide();
+            if (Refs.CrabStage != null) Refs.CrabStage.ReturnHome();
+            if (Refs.CameraDirector != null) Refs.CameraDirector.EnterSelectMode();
+            if (Refs.HudVisibility != null) Refs.HudVisibility.ShowAll(); // 演出で隠したUIをここで戻す
+            Input.DisableAll();
 
-            if (_refs.RoundIntroView != null)
+            if (Refs.RoundIntroView != null)
             {
-                _refs.RoundIntroView.Play(_ctx.DisplayRound);
-                _timer = _refs.RoundIntroView.TotalSeconds;
+                Refs.RoundIntroView.Play(Ctx.DisplayRound);
+                _timer = Refs.RoundIntroView.TotalSeconds;
             }
             else
             {
-                _changePhase(PhaseId.Select); // 演出未割り当てならそのまま選択へ
+                ChangePhase(PhaseId.Select); // 演出未割り当てならそのまま選択へ
             }
         }
 
-        public void Tick(float deltaTime)
+        public override void Tick(float deltaTime)
         {
             _timer -= deltaTime;
             if (_timer > 0f) return;
 
-            if (_refs.RoundIntroView != null) _refs.RoundIntroView.Hide();
-            _changePhase(PhaseId.Select);
+            if (Refs.RoundIntroView != null) Refs.RoundIntroView.Hide();
+            ChangePhase(PhaseId.Select);
         }
-
-        public void Exit() { }
     }
 }

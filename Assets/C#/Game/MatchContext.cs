@@ -3,10 +3,8 @@ using KaniTactics.Core;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 試合中にフェーズ間で共有するデータ(共有のメモ帳)。
     /// 試合ごとに1つ生成し、再戦時は作り直す。
-    /// </summary>
     public sealed class MatchContext
     {
         // ---- 試合全体で変わらないもの ----
@@ -18,15 +16,15 @@ namespace KaniTactics.Game
         // ---- CPU(SoloCpuのみ。LocalVersusではnull) ----
         public CpuBrain Brain { get; }
         public CpsTracker CpsTracker { get; }
-        /// <summary>この試合で行った連打の回数。CPU疲労の段数に使う</summary>
+        /// この試合で行った連打の回数。CPU疲労の段数に使う
         public int MashCount { get; set; }
-        /// <summary>プレイヤーの連打ごとのCPS記録(SoloCpuのみ。M5のρ確定用データ)</summary>
+        /// プレイヤーの連打ごとのCPS記録(SoloCpuのみ。M5のρ確定用データ)
         public List<float> CpsLog { get; } = new List<float>();
 
         // ---- ラウンドごとに書き換わるもの ----
-        /// <summary>HUDに出すラウンド番号</summary>
+        /// HUDに出すラウンド番号
         public int DisplayRound { get; set; }
-        /// <summary>いま牌を選んでいる側(LocalVersusで交互になる)</summary>
+        /// いま牌を選んでいる側(LocalVersusで交互になる)
         public Player Selecting { get; set; }
         public int TileA { get; set; }
         public int TileB { get; set; }

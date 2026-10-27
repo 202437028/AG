@@ -2,10 +2,8 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// フェーズごとのHUD表示制御。演出の見せ場で不要なUIを引っ込め、視認性を上げる。
     /// Canvasにアタッチし、各UIオブジェクトを割り当てる(未割り当ての枠は単に無視される)。
-    /// </summary>
     public sealed class HudVisibilityDirector : MonoBehaviour
     {
         [Tooltip("ラウンド・スコア表示")]
@@ -21,13 +19,13 @@ namespace KaniTactics.Game
         [Tooltip("PAUSEボタン")]
         [SerializeField] private GameObject pauseButton;
 
-        /// <summary>選択フェーズ・ラウンド開始時: 全部表示。</summary>
+        /// 選択フェーズ・ラウンド開始時: 全部表示。
         public void ShowAll() => Apply(true, true, true, true, true, true);
 
-        /// <summary>判定・カウントダウン中: 演出以外を全部隠す。</summary>
+        /// 判定・カウントダウン中: 演出以外を全部隠す。
         public void HideAll() => Apply(false, false, false, false, false, false);
 
-        /// <summary>連打フェーズ: ヘッダ・残り時間・操作説明のみ表示(手札・PAUSEは隠す)。</summary>
+        /// 連打フェーズ: ヘッダ・残り時間・操作説明のみ表示(手札・PAUSEは隠す)。
         public void ShowMashOnly() => Apply(true, true, true, false, false, false);
 
         private void Apply(bool header, bool timer, bool sub, bool opponent, bool self, bool pause)

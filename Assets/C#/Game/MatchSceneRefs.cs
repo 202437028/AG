@@ -2,10 +2,8 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// フェーズが使うシーン上の参照(View・演出・サウンド)の束。
     /// 値はGameFlowControllerのInspector設定から詰める。フェーズごとに長い引数リストを渡さないための入れ物。
-    /// </summary>
     public sealed class MatchSceneRefs
     {
         // ---- View・演出(未割り当てならnull。各フェーズ側でnullチェックする) ----

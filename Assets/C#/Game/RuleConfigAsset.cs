@@ -3,11 +3,9 @@ using KaniTactics.Core;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// RuleConfig のインスペクタ編集用ラッパー。
     /// Project右クリック → Create → KaniTactics → RuleConfig でアセットを作成し、
     /// 使用側は ToConfig() で Core 用の RuleConfig に変換して渡す。
-    /// </summary>
     [CreateAssetMenu(fileName = "RuleConfig", menuName = "KaniTactics/RuleConfig")]
     public sealed class RuleConfigAsset : ScriptableObject
     {
@@ -54,7 +52,7 @@ namespace KaniTactics.Game
             new GekokujoEntry { low = 2, high = 9, steps = 1 },
         };
 
-        /// <summary>Core用の設定オブジェクトに変換する。</summary>
+        /// Core用の設定オブジェクトに変換する。
         public RuleConfig ToConfig()
         {
             var rules = new GekokujoRule[gekokujo.Length];

@@ -2,86 +2,70 @@ using KaniTactics.Core;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 牌の公開演出。大差なら即決着で結果へ、そうでなければ連打へ進む。
-    /// </summary>
-    public sealed class Phase30Reveal : IMatchPhase
+    public sealed class Phase30Reveal : MatchPhaseBase
     {
-        private readonly MatchContext _ctx;
-        private readonly MatchInput _input;
-        private readonly MatchSceneRefs _refs;
-        private readonly System.Action<PhaseId> _changePhase;
+        private const float FallbackSeconds = 2f; // 演出View未割り当て時の表示時間
+        private const float DuckLevel = 0.5f;     // 公開中のBGM音量(正規音量に対する倍率)
 
         private float _timer;
 
         public Phase30Reveal(MatchContext ctx, MatchInput input, MatchSceneRefs refs,
                              System.Action<PhaseId> changePhase)
-        {
-            _ctx = ctx;
-            _input = input;
-            _refs = refs;
-            _changePhase = changePhase;
-        }
+            : base(ctx, input, refs, changePhase) { }
 
-        public HudMode HudMode => HudMode.Reveal;
-        public float HudTimer => _timer;
-        public int? CursorTile => null;
+        public override HudMode HudMode => HudMode.Reveal;
+        public override float HudTimer => _timer;
 
-        public void Enter()
+        public override void Enter()
         {
             // 選択確定の瞬間(ふたりでは2Pの確定時)にHUDを引っ込める。
             // 牌カードが出る前に手札・PAUSEを消し、公開演出を邪魔しないようにする。
-            if (_refs.HudVisibility != null) _refs.HudVisibility.HideAll();
-            if (_refs.CameraDirector != null) _refs.CameraDirector.EnterBattleMode();
+            if (Refs.HudVisibility != null) Refs.HudVisibility.HideAll();
+            if (Refs.CameraDirector != null) Refs.CameraDirector.EnterBattleMode();
 
-            if (_refs.RevealView != null)
-            {
-                var m = _ctx.Matchup;
-                if (m.IsImmediate)
-                {
-                    // 大差決着: 勝者に1勝を先取りした状態のスコアを見せる
-                    int winsA = _ctx.State.WinsA + (m.ImmediateWinner == Player.A ? 1 : 0);
-                    int winsB = _ctx.State.WinsB + (m.ImmediateWinner == Player.B ? 1 : 0);
-                    _refs.RevealView.PlayImmediate(_ctx.TileA, _ctx.TileB, $"{winsA} - {winsB}");
-                    _timer = _refs.RevealView.ImmediateSeconds;
-                }
-                else
-                {
-                    string instruction = _ctx.IsVersus
-                        ? "AとD ←と→を\n連打しろ!!"
-                        : "AとDを連打しろ!!";
-                    _refs.RevealView.PlayMashIntro(_ctx.TileA, _ctx.TileB, instruction);
-                    _timer = _refs.RevealView.MashIntroSeconds;
-                }
-                SoundManager.Instance.DuckForSeconds(0.5f, _timer);
-            }
-            else
-            {
-                _timer = 2f; // 従来動作(演出なし)
-                SoundManager.Instance.DuckForSeconds(0.5f, 2f);
-            }
+            _timer = Refs.RevealView != null ? PlayRevealView() : FallbackSeconds;
+            SoundManager.Instance.DuckForSeconds(DuckLevel, _timer);
 
-            _input.SwitchMaps(select: false, mashP1: false, mashP2: false, system: false);
+            Input.DisableAll();
         }
 
-        public void Tick(float deltaTime)
+        public override void Tick(float deltaTime)
         {
             _timer -= deltaTime;
             if (_timer > 0f) return;
 
-            if (_refs.RevealView != null) _refs.RevealView.Hide();
+            if (Refs.RevealView != null) Refs.RevealView.Hide();
 
-            if (_ctx.Matchup.IsImmediate)
+            if (Ctx.Matchup.IsImmediate)
             {
-                _ctx.RoundWinner = _ctx.Matchup.ImmediateWinner;
-                _changePhase(PhaseId.Result);
+                Ctx.RoundWinner = Ctx.Matchup.ImmediateWinner;
+                ChangePhase(PhaseId.Result);
             }
             else
             {
-                _changePhase(PhaseId.Mash);
+                ChangePhase(PhaseId.Mash);
             }
         }
 
-        public void Exit() { }
+        /// 判定に応じた公開演出を再生し、その尺(秒)を返す。
+        private float PlayRevealView()
+        {
+            var m = Ctx.Matchup;
+            if (m.IsImmediate)
+            {
+                // 大差決着: 勝者に1勝を先取りした状態のスコアを見せる
+                int winsA = Ctx.State.WinsA + (m.ImmediateWinner == Player.A ? 1 : 0);
+                int winsB = Ctx.State.WinsB + (m.ImmediateWinner == Player.B ? 1 : 0);
+                Refs.RevealView.PlayImmediate(Ctx.TileA, Ctx.TileB, $"{winsA} - {winsB}");
+                return Refs.RevealView.ImmediateSeconds;
+            }
+
+            string instruction = Ctx.IsVersus
+                ? "AとD ←と→を\n連打しろ!!"
+                : "AとDを連打しろ!!";
+            Refs.RevealView.PlayMashIntro(Ctx.TileA, Ctx.TileB, instruction);
+            return Refs.RevealView.MashIntroSeconds;
+        }
     }
 }

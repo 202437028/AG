@@ -3,14 +3,12 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 1試合の進行役(司会者)。フェーズの生成と切り替えだけを担当し、中身の処理は各フェーズに任せる。
     ///   流れ: Phase10RoundIntro → 20Select → 30Reveal → 40Mash → 50Result → 60MatchEnd
     ///   入力はMatchInput、共有データはMatchContext、HUD文言はMatchHudPresenterに委譲する。
     /// モード:
     ///   SoloCpu     … A=プレイヤー、B=CPU(均衡AI+疲労モデル)
     ///   LocalVersus … A=P1、B=P2。選択は交互(手番外は画面を見ない運用)、連打は同時(P1: A/D、P2: ←/→)
-    /// </summary>
     public sealed class GameFlowController : MonoBehaviour
     {
         public enum GameMode { SoloCpu, LocalVersus }
@@ -103,7 +101,7 @@ namespace KaniTactics.Game
             _presenter.Render(_ctx, _current.HudMode, _current.HudTimer, _current.CursorTile, revealView != null);
         }
 
-        /// <summary>試合を最初から始める。フェーズは試合ごとに新しいMatchContextで作り直す。</summary>
+        /// 試合を最初から始める。フェーズは試合ごとに新しいMatchContextで作り直す。
         private void StartMatch()
         {
             SoundManager.Instance.PlayBgm(bgmBattle);
@@ -125,10 +123,10 @@ namespace KaniTactics.Game
             _phases[PhaseId.Reveal]     = new Phase30Reveal(_ctx, _input, _refs, ChangePhase);
             _phases[PhaseId.Mash]       = new Phase40Mash(_ctx, _input, _refs, ChangePhase);
             _phases[PhaseId.Result]     = new Phase50Result(_ctx, _input, _refs, ChangePhase);
-            _phases[PhaseId.MatchEnd]   = new Phase60MatchEnd(_ctx, _input, _refs, StartMatch);
+            _phases[PhaseId.MatchEnd]   = new Phase60MatchEnd(_ctx, _input, _refs, ChangePhase, StartMatch);
         }
 
-        /// <summary>フェーズ切り替えの唯一の入口。旧フェーズのExit → 新フェーズのEnter の順に呼ぶ。</summary>
+        /// フェーズ切り替えの唯一の入口。旧フェーズのExit → 新フェーズのEnter の順に呼ぶ。
         private void ChangePhase(PhaseId next)
         {
             _current?.Exit();
@@ -138,10 +136,10 @@ namespace KaniTactics.Game
 
         // ---- ポーズメニューのボタン用 ----
 
-        /// <summary>「再開」ボタン用。</summary>
+        /// 「再開」ボタン用。
         public void ResumeFromPause() => _select?.SetPaused(false);
 
-        /// <summary>「最初から」ボタン用。試合を仕切り直す。</summary>
+        /// 「最初から」ボタン用。試合を仕切り直す。
         public void RestartMatch()
         {
             _select?.SetPaused(false);

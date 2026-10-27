@@ -3,12 +3,10 @@ using System.Linq;
 
 namespace KaniTactics.Core
 {
-    /// <summary>
     /// CPU(Player.B)の手選択AI。
     /// ・残り手札同士の勝率行列を作り、混合戦略均衡を解いて抽選する
     /// ・難易度ごとの「均衡手の採用率」で完全ランダムと混合(ハンディ)
     /// ・CPUの連打力は疲労モデルで減衰: 実効CPS = 基準CPS × (1 - 疲労率)^試合内連打回数
-    /// </summary>
     public sealed class CpuBrain
     {
         private readonly RuleConfig _config;
@@ -24,12 +22,12 @@ namespace KaniTactics.Core
             _rng = rng ?? throw new ArgumentNullException(nameof(rng));
         }
 
-        /// <summary>疲労を織り込んだ現在の実効CPS。連打を重ねるほど減衰する。</summary>
+        /// 疲労を織り込んだ現在の実効CPS。連打を重ねるほど減衰する。
         public float EffectiveCps(int mashCountSoFar)
             => _config.CpuCps[_difficulty]
                * (float)Math.Pow(1.0 - _config.CpuFatigueRatePerMash, mashCountSoFar);
 
-        /// <summary>この試合状況でCPUが出す牌を決める。</summary>
+        /// この試合状況でCPUが出す牌を決める。
         /// <param name="state">現在の試合状態(両者の残り手札)</param>
         /// <param name="mashCountSoFar">この試合で発生済みの連打フェーズ回数(疲労計算用)</param>
         /// <param name="playerCpsEstimate">プレイヤーの推定CPS(CpsTracker.Estimate)</param>

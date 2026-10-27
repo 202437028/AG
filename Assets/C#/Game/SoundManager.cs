@@ -3,33 +3,15 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
-    /// BGM/SE再生の一元管理。初回アクセス時に自動生成され、シーンをまたいで生存する。
+    /// BGM/SE再生の一元管理。初回アクセス時に自動生成され、シーンをまたいで生存する(PersistentSingleton)。
     /// クリップは各呼び出し側(GameFlowController / TitleMenuController)が持ち、ここは再生だけを担う。
     /// ダッキング: SE再生中はBGMを一時的に下げ、終わったら自動で戻す(DuckForSeconds)。
     /// 試合勝敗ジングルのような「その場面が続く間ずっと無音でいい」音は DuckMute で完全ミュートし、
     /// 次にPlayBgmが呼ばれるまで自動では戻さない。
-    /// </summary>
-    public sealed class SoundManager : MonoBehaviour
+    public sealed class SoundManager : PersistentSingleton<SoundManager>
     {
         private const string BgmVolumeKey = "BgmVolume";
         private const string SeVolumeKey = "SeVolume";
-
-        private static SoundManager _instance;
-
-        public static SoundManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    var go = new GameObject("SoundManager");
-                    _instance = go.AddComponent<SoundManager>();
-                    DontDestroyOnLoad(go);
-                }
-                return _instance;
-            }
-        }
 
         private AudioSource _bgmSource;
         private AudioSource _seSource;
@@ -59,15 +41,13 @@ namespace KaniTactics.Game
             _bgmSource.volume = BgmVolume;
         }
 
-        /// <summary>
         /// BGMを再生する。ダッキングで下がっていた音量は必ずここで正規音量に戻る
         /// (試合勝敗ジングルでミュートした後、次の試合開始で自動的に元へ戻すため)。
         /// 同じクリップが既に再生中なら再生位置は維持し、音量だけ戻す。
-        /// </summary>
         public void PlayBgm(AudioClip clip)
         {
             if (clip == null) { StopBgm(); return; }
-            if (_duckRoutine != null) { StopCoroutine(_duckRoutine); _duckRoutine = null; }
+            StopDuck();
             _bgmSource.volume = BgmVolume;
             if (_bgmSource.clip == clip && _bgmSource.isPlaying) return;
             _bgmSource.clip = clip;
@@ -76,14 +56,14 @@ namespace KaniTactics.Game
 
         public void StopBgm() => _bgmSource.Stop();
 
-        /// <summary>単発SE。nullは無視(未割り当てでも安全)。</summary>
+        /// 単発SE。nullは無視(未割り当てでも安全)。
         public void PlaySe(AudioClip clip)
         {
             if (clip == null) return;
             _seSource.PlayOneShot(clip);
         }
 
-        /// <summary>ループSE(連打中など)。同じクリップ再生中なら何もしない。</summary>
+        /// ループSE(連打中など)。同じクリップ再生中なら何もしない。
         public void PlayLoopSe(AudioClip clip)
         {
             if (clip == null) return;
@@ -94,24 +74,27 @@ namespace KaniTactics.Game
 
         public void StopLoopSe() => _loopSeSource.Stop();
 
-        /// <summary>
         /// BGMを一時的に下げて、durationSeconds後に自動で元の音量へ戻す。
         /// duckLevelは正規音量に対する倍率(0.5=半分、0=無音)。公開・ラウンド勝敗の演出向け。
-        /// </summary>
         public void DuckForSeconds(float duckLevel, float durationSeconds, float fadeSeconds = 0.15f)
         {
-            if (_duckRoutine != null) StopCoroutine(_duckRoutine);
+            StopDuck();
             _duckRoutine = StartCoroutine(DuckRoutine(duckLevel, durationSeconds, fadeSeconds));
         }
 
-        /// <summary>
         /// BGMを完全ミュートにし、自動では戻さない。試合勝敗ジングル向け
         /// (次にPlayBgmが呼ばれた瞬間に正規音量へ復帰する)。
-        /// </summary>
         public void DuckMute(float fadeSeconds = 0.15f)
         {
-            if (_duckRoutine != null) { StopCoroutine(_duckRoutine); _duckRoutine = null; }
+            StopDuck();
             StartCoroutine(FadeBgm(0f, fadeSeconds));
+        }
+
+        private void StopDuck()
+        {
+            if (_duckRoutine == null) return;
+            StopCoroutine(_duckRoutine);
+            _duckRoutine = null;
         }
 
         private IEnumerator DuckRoutine(float duckLevel, float holdSeconds, float fadeSeconds)

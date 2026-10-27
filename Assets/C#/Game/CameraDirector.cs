@@ -2,11 +2,9 @@ using UnityEngine;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// カメラ演出。選択フェーズは対戦ステージの周りを緩やかに振り(ポケモン対戦のカメラワーク風)、
     /// 連打フェーズは固定位置に戻って落ち着かせる。
     /// Main Cameraにアタッチし、Targetに対戦ステージ(CrabStage)を割り当てる。
-    /// </summary>
     public sealed class CameraDirector : MonoBehaviour
     {
         [Tooltip("注視するステージ(CrabStageなど)")]
@@ -49,10 +47,10 @@ namespace KaniTactics.Game
             }
         }
 
-        /// <summary>選択フェーズ: ステージ周りを振るカメラワークに入る。</summary>
+        /// 選択フェーズ: ステージ周りを振るカメラワークに入る。
         public void EnterSelectMode() => _selectMode = true;
 
-        /// <summary>連打・演出フェーズ: 固定カメラに戻る。</summary>
+        /// 連打・演出フェーズ: 固定カメラに戻る。
         public void EnterBattleMode() => _selectMode = false;
 
         private void LateUpdate()

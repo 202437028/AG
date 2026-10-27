@@ -3,12 +3,10 @@ using UnityEngine.UI;
 
 namespace KaniTactics.Game
 {
-    /// <summary>
     /// 綱引き型の鍔迫り合いゲージ。左=プレイヤー、右=CPU。
     /// 実際の勝敗値(連打数×倍率)の比率を滑らかに追従して表示し、
     /// 連打数そのものは見せない(ブラックボックス化)。
     /// DQMBV風の装飾(押し込みエフェクト・振動など)は今後このクラスに足していく。
-    /// </summary>
     public sealed class MashGaugeView : MonoBehaviour
     {
         [Tooltip("プレイヤー側の塗り。Image Type: Filled / Horizontal / Origin: Left")]
@@ -26,7 +24,7 @@ namespace KaniTactics.Game
         private float _current = 0.5f;
         private float _target = 0.5f;
 
-        /// <summary>連打フェーズ開始時に呼ぶ。中央で拮抗した状態から始める。</summary>
+        /// 連打フェーズ開始時に呼ぶ。中央で拮抗した状態から始める。
         public void Show()
         {
             _current = _target = 0.5f;
@@ -36,7 +34,7 @@ namespace KaniTactics.Game
 
         public void Hide() => gameObject.SetActive(false);
 
-        /// <summary>ゲージの目標位置。0=CPU側に押し切られた状態、1=プレイヤー側の完勝、0.5=拮抗。</summary>
+        /// ゲージの目標位置。0=CPU側に押し切られた状態、1=プレイヤー側の完勝、0.5=拮抗。
         public void SetTarget(float normalized)
         {
             float centered = (Mathf.Clamp01(normalized) - 0.5f) * exaggeration;
